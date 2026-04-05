@@ -1,4 +1,4 @@
-package tui
+package components
 
 import (
 	"fmt"
@@ -16,85 +16,87 @@ import (
 type ResponseHeaderPane struct {
 	viewport viewport.Model
 	ready    bool
+	keyStyle lipgloss.Style
+	valStyle lipgloss.Style
 }
 
 func NewResponseHeaderPane() *ResponseHeaderPane {
-	return &ResponseHeaderPane{}
+	return &ResponseHeaderPane{
+		keyStyle: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#7D56F4")),
+		valStyle: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FAFAFA")),
+	}
 }
 
-func (h *ResponseHeaderPane) SetSize(width, height int) {
-	if !h.ready {
-		h.viewport = viewport.New(
+func (c *ResponseHeaderPane) SetSize(width, height int) {
+	if !c.ready {
+		c.viewport = viewport.New(
 			viewport.WithWidth(width),
 			viewport.WithHeight(height),
 		)
 
-		h.viewport.MouseWheelEnabled = true
-		h.ready = true
+		c.viewport.MouseWheelEnabled = true
+		c.ready = true
 	} else {
-		h.viewport.SetWidth(width)
-		h.viewport.SetHeight(height)
+		c.viewport.SetWidth(width)
+		c.viewport.SetHeight(height)
 	}
 }
 
-func (h *ResponseHeaderPane) SetHeaders(headers []valobj.Header) {
-	if !h.ready {
+func (c *ResponseHeaderPane) SetHeaders(headers []valobj.Header) {
+	if !c.ready {
 		return
 	}
 
 	if len(headers) == 0 {
-		h.viewport.SetContent("  No headers")
+		c.viewport.SetContent("  No headers")
 		return
 	}
 
 	// Sort headers by key for consistent display
 	sorted := make([]valobj.Header, len(headers))
 	copy(sorted, headers)
+
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].Key < sorted[j].Key
 	})
 
-	keyStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#7D56F4"))
-
-	valStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FAFAFA"))
-
 	var sb strings.Builder
-	for _, hdr := range sorted {
+	for i := range sorted {
 		sb.WriteString(fmt.Sprintf("  %s: %s\n",
-			keyStyle.Render(hdr.Key),
-			valStyle.Render(hdr.Value),
+			c.keyStyle.Render(sorted[i].Key),
+			c.valStyle.Render(sorted[i].Value),
 		))
 	}
 
-	h.viewport.SetContent(sb.String())
+	c.viewport.SetContent(sb.String())
 }
 
-func (h *ResponseHeaderPane) Clear() {
-	if h.ready {
-		h.viewport.SetContent("")
+func (c *ResponseHeaderPane) Clear() {
+	if c.ready {
+		c.viewport.SetContent("")
 	}
 }
 
-func (h *ResponseHeaderPane) Update(msg tea.Msg) tea.Cmd {
-	if !h.ready {
+func (c *ResponseHeaderPane) Update(msg tea.Msg) tea.Cmd {
+	if !c.ready {
 		return nil
 	}
 
 	var cmd tea.Cmd
-	h.viewport, cmd = h.viewport.Update(msg)
+	c.viewport, cmd = c.viewport.Update(msg)
 
 	return cmd
 }
 
-func (h *ResponseHeaderPane) View() string {
-	if !h.ready {
+func (c *ResponseHeaderPane) View() string {
+	if !c.ready {
 		return ""
 	}
 
-	return h.viewport.View()
+	return c.viewport.View()
 }
 
 type ResponseBodyPane struct {
@@ -106,95 +108,110 @@ func NewResponseBodyPane() *ResponseBodyPane {
 	return &ResponseBodyPane{}
 }
 
-func (b *ResponseBodyPane) SetSize(width, height int) {
-	if !b.ready {
-		b.viewport = viewport.New(
+func (c *ResponseBodyPane) SetSize(width, height int) {
+	if !c.ready {
+		c.viewport = viewport.New(
 			viewport.WithWidth(width),
 			viewport.WithHeight(height),
 		)
 
-		b.viewport.MouseWheelEnabled = true
-		b.ready = true
+		c.viewport.MouseWheelEnabled = true
+		c.ready = true
 	} else {
-		b.viewport.SetWidth(width)
-		b.viewport.SetHeight(height)
+		c.viewport.SetWidth(width)
+		c.viewport.SetHeight(height)
 	}
 }
 
-func (b *ResponseBodyPane) SetContent(resp *entity.Response) {
-	if !b.ready {
+func (c *ResponseBodyPane) SetContent(resp *entity.Response) {
+	if !c.ready {
 		return
 	}
 
-	b.viewport.SetContent(resp.FormatBody())
+	c.viewport.SetContent(resp.FormatBody())
 }
 
-func (b *ResponseBodyPane) Clear() {
-	if b.ready {
-		b.viewport.SetContent("")
+func (c *ResponseBodyPane) Clear() {
+	if c.ready {
+		c.viewport.SetContent("")
 	}
 }
 
-func (b *ResponseBodyPane) Update(msg tea.Msg) tea.Cmd {
-	if !b.ready {
+func (c *ResponseBodyPane) Update(msg tea.Msg) tea.Cmd {
+	if !c.ready {
 		return nil
 	}
 
 	var cmd tea.Cmd
-	b.viewport, cmd = b.viewport.Update(msg)
+	c.viewport, cmd = c.viewport.Update(msg)
 
 	return cmd
 }
 
-func (b *ResponseBodyPane) View() string {
-	if !b.ready {
+func (c *ResponseBodyPane) View() string {
+	if !c.ready {
 		return ""
 	}
 
-	return b.viewport.View()
+	return c.viewport.View()
 }
 
 type ResponseStatusLine struct {
-	response *entity.Response
+	response   *entity.Response
+	mutedStyle lipgloss.Style
+	labelStyle lipgloss.Style
 }
 
 func NewResponseStatusLine() *ResponseStatusLine {
-	return &ResponseStatusLine{}
+	return &ResponseStatusLine{
+		mutedStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")),
+		labelStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")),
+	}
 }
 
-func (s *ResponseStatusLine) SetResponse(resp *entity.Response) {
-	s.response = resp
+func (c *ResponseStatusLine) SetResponse(resp *entity.Response) {
+	c.response = resp
 }
 
-func (s *ResponseStatusLine) Clear() {
-	s.response = nil
+func (c *ResponseStatusLine) Clear() {
+	c.response = nil
 }
 
-func (s *ResponseStatusLine) View() string {
-	if s.response == nil {
+func (c *ResponseStatusLine) View() string {
+	if c.response == nil {
 		return ""
 	}
 
-	statusStyle := statusStyleForCode(s.response.StatusCode)
-	status := statusStyle.Render(s.response.Status)
-
-	mutedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#626262"))
-	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#888888"))
-
-	totalTiming := mutedStyle.Render(fmt.Sprintf("%dms", s.response.Timing.Total.Milliseconds()))
-	size := mutedStyle.Render(formatSize(len(s.response.Body.Bytes())))
+	status := c.styleForCode().Render(c.response.Status)
+	totalTiming := c.mutedStyle.Render(fmt.Sprintf("%dms", c.response.Timing.Total.Milliseconds()))
+	size := c.mutedStyle.Render(formatSize(len(c.response.Body.Bytes())))
 
 	summary := fmt.Sprintf("%s  ·  %s  ·  %s", status, totalTiming, size)
+	breakdown := formatTimingBreakdown(c.response.Timing, c.labelStyle, c.mutedStyle)
 
-	breakdown := formatTimingBreakdown(s.response.Timing, labelStyle, mutedStyle)
-	if breakdown != "" {
+	if len(breakdown) != 0 {
 		summary += "\n" + breakdown
 	}
 
 	return summary
 }
 
-func formatTimingBreakdown(t valobj.Timing, labelStyle, valStyle lipgloss.Style) string {
+func (c *ResponseStatusLine) styleForCode() lipgloss.Style {
+	style := lipgloss.NewStyle().Bold(true)
+
+	switch {
+	case c.response.StatusCode >= 200 && c.response.StatusCode < 300:
+		return style.Foreground(lipgloss.Color("#73D216"))
+	case c.response.StatusCode >= 300 && c.response.StatusCode < 400:
+		return style.Foreground(lipgloss.Color("#F5A623"))
+	case c.response.StatusCode >= 400 && c.response.StatusCode < 500:
+		return style.Foreground(lipgloss.Color("#FF6F61"))
+	default:
+		return style.Foreground(lipgloss.Color("#FF4444"))
+	}
+}
+
+func formatTimingBreakdown(t valobj.Timing, labelStyle lipgloss.Style, valStyle lipgloss.Style) string {
 	var parts []string
 
 	if t.DNSLookup > 0 {
@@ -203,18 +220,21 @@ func formatTimingBreakdown(t valobj.Timing, labelStyle, valStyle lipgloss.Style)
 			valStyle.Render(fmt.Sprintf("%dms", t.DNSLookup.Milliseconds())),
 		))
 	}
+
 	if t.TCPConnect > 0 {
 		parts = append(parts, fmt.Sprintf("%s %s",
 			labelStyle.Render("TCP:"),
 			valStyle.Render(fmt.Sprintf("%dms", t.TCPConnect.Milliseconds())),
 		))
 	}
+
 	if t.TLSHandshake > 0 {
 		parts = append(parts, fmt.Sprintf("%s %s",
 			labelStyle.Render("TLS:"),
 			valStyle.Render(fmt.Sprintf("%dms", t.TLSHandshake.Milliseconds())),
 		))
 	}
+
 	if t.TTFB > 0 {
 		parts = append(parts, fmt.Sprintf("%s %s",
 			labelStyle.Render("TTFB:"),
@@ -229,20 +249,6 @@ func formatTimingBreakdown(t valobj.Timing, labelStyle, valStyle lipgloss.Style)
 	return "  " + strings.Join(parts, "  ·  ")
 }
 
-func statusStyleForCode(code int) lipgloss.Style {
-	style := lipgloss.NewStyle().Bold(true)
-	switch {
-	case code >= 200 && code < 300:
-		return style.Foreground(lipgloss.Color("#73D216"))
-	case code >= 300 && code < 400:
-		return style.Foreground(lipgloss.Color("#F5A623"))
-	case code >= 400 && code < 500:
-		return style.Foreground(lipgloss.Color("#FF6F61"))
-	default:
-		return style.Foreground(lipgloss.Color("#FF4444"))
-	}
-}
-
 func formatSize(bytes int) string {
 	switch {
 	case bytes >= 1024*1024:
@@ -254,9 +260,27 @@ func formatSize(bytes int) string {
 	}
 }
 
+type ResponseViewerKeyMap struct {
+	NextTab key.Binding
+	PrevTab key.Binding
+}
+
+func defaultResponseViewerKeys() ResponseViewerKeyMap {
+	return ResponseViewerKeyMap{
+		NextTab: key.NewBinding(
+			key.WithKeys("ctrl+x"),
+			key.WithHelp("ctrl+x", "next tab"),
+		),
+		PrevTab: key.NewBinding(
+			key.WithKeys("ctrl+q"),
+			key.WithHelp("ctrl+q", "prev tab"),
+		),
+	}
+}
+
 type ResponseViewer struct {
 	statusLine *ResponseStatusLine
-	tabs       *Tabs
+	tabs       *ResponseTabs
 	bodyPane   *ResponseBodyPane
 	headerPane *ResponseHeaderPane
 
@@ -268,43 +292,27 @@ type ResponseViewer struct {
 	keys ResponseViewerKeyMap
 }
 
-type ResponseViewerKeyMap struct {
-	NextTab key.Binding
-	PrevTab key.Binding
-}
-
-var defaultViewerKeys = ResponseViewerKeyMap{
-	NextTab: key.NewBinding(
-		key.WithKeys("ctrl+x"),
-		key.WithHelp("ctrl+x", "next tab"),
-	),
-	PrevTab: key.NewBinding(
-		key.WithKeys("ctrl+q"),
-		key.WithHelp("ctrl+q", "prev tab"),
-	),
-}
-
 func NewResponseViewer() *ResponseViewer {
 	return &ResponseViewer{
 		statusLine: NewResponseStatusLine(),
-		tabs:       NewTabs(),
+		tabs:       NewResponseTabs(),
 		bodyPane:   NewResponseBodyPane(),
 		headerPane: NewResponseHeaderPane(),
-		keys:       defaultViewerKeys,
+		keys:       defaultResponseViewerKeys(),
 	}
 }
 
-func (v *ResponseViewer) Focus() {
-	v.focused = true
+func (c *ResponseViewer) Focus() {
+	c.focused = true
 }
 
-func (v *ResponseViewer) Blur() {
-	v.focused = false
+func (c *ResponseViewer) Blur() {
+	c.focused = false
 }
 
-func (v *ResponseViewer) SetSize(width, height int) {
-	v.width = width
-	v.height = height
+func (c *ResponseViewer) SetSize(width, height int) {
+	c.width = width
+	c.height = height
 
 	// Reserve space for status line (2 lines) + tabs (1 line) + separator
 	paneHeight := height - 4
@@ -312,71 +320,71 @@ func (v *ResponseViewer) SetSize(width, height int) {
 		paneHeight = 1
 	}
 
-	v.bodyPane.SetSize(width, paneHeight)
-	v.headerPane.SetSize(width, paneHeight)
+	c.bodyPane.SetSize(width, paneHeight)
+	c.headerPane.SetSize(width, paneHeight)
 }
 
-func (v *ResponseViewer) SetResponse(resp *entity.Response) {
-	v.hasResp = true
-	v.statusLine.SetResponse(resp)
-	v.bodyPane.SetContent(resp)
-	v.headerPane.SetHeaders(resp.Headers)
+func (c *ResponseViewer) SetResponse(resp *entity.Response) {
+	c.hasResp = true
+	c.statusLine.SetResponse(resp)
+	c.bodyPane.SetContent(resp)
+	c.headerPane.SetHeaders(resp.Headers)
 }
 
-func (v *ResponseViewer) Clear() {
-	v.hasResp = false
-	v.statusLine.Clear()
-	v.bodyPane.Clear()
-	v.headerPane.Clear()
+func (c *ResponseViewer) Clear() {
+	c.hasResp = false
+	c.statusLine.Clear()
+	c.bodyPane.Clear()
+	c.headerPane.Clear()
 }
 
-func (v *ResponseViewer) HasResponse() bool {
-	return v.hasResp
+func (c *ResponseViewer) HasResponse() bool {
+	return c.hasResp
 }
 
-func (v *ResponseViewer) Update(msg tea.Msg) tea.Cmd {
-	if !v.focused || !v.hasResp {
+func (c *ResponseViewer) Update(msg tea.Msg) tea.Cmd {
+	if !c.focused || !c.hasResp {
 		return nil
 	}
 
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch {
-		case key.Matches(msg, v.keys.NextTab):
-			v.tabs.Next()
+		case key.Matches(msg, c.keys.NextTab):
+			c.tabs.Next()
 			return nil
-		case key.Matches(msg, v.keys.PrevTab):
-			v.tabs.Prev()
+		case key.Matches(msg, c.keys.PrevTab):
+			c.tabs.Prev()
 			return nil
 		}
 	}
 
 	// Route scroll events to active pane
 	var cmd tea.Cmd
-	switch v.tabs.Active() {
-	case TabBody:
-		cmd = v.bodyPane.Update(msg)
-	case TabHeaders:
-		cmd = v.headerPane.Update(msg)
+	switch c.tabs.Active() {
+	case ResponseTabBody:
+		cmd = c.bodyPane.Update(msg)
+	case ResponseTabHeaders:
+		cmd = c.headerPane.Update(msg)
 	}
 
 	return cmd
 }
 
-func (v *ResponseViewer) View() string {
-	if !v.hasResp {
+func (c *ResponseViewer) View() string {
+	if !c.hasResp {
 		return ""
 	}
 
-	statusView := v.statusLine.View()
-	tabsView := v.tabs.View(v.width)
+	statusView := c.statusLine.View()
+	tabsView := c.tabs.View(c.width)
 
 	var paneView string
-	switch v.tabs.Active() {
-	case TabBody:
-		paneView = v.bodyPane.View()
-	case TabHeaders:
-		paneView = v.headerPane.View()
+	switch c.tabs.Active() {
+	case ResponseTabBody:
+		paneView = c.bodyPane.View()
+	case ResponseTabHeaders:
+		paneView = c.headerPane.View()
 	}
 
 	return lipgloss.JoinVertical(

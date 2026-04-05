@@ -1,82 +1,101 @@
-package tui
+package components
 
 import (
-	"fmt"
 	"strings"
 
 	"charm.land/lipgloss/v2"
 )
 
-type Tab int
+type RequestTab int
 
 const (
-	TabHeaders Tab = iota
-	TabParams
-	TabBody
+	RequestTabHeaders RequestTab = iota
+	RequestTabParams
+	RequestTabBody
 )
 
-var tabNames = []string{"Headers", "Params", "Body"}
+const (
+	RequestTabHeadersName string = "Headers"
+	RequestTabParamsName  string = "Params"
+	RequestTabBodyName    string = "Body"
+)
 
-func (t Tab) String() string {
-	return tabNames[t]
-}
-
-type Tabs struct {
-	active Tab
-}
-
-func NewTabs() *Tabs {
-	return &Tabs{
-		active: TabHeaders,
+func (c RequestTab) String() string {
+	switch c {
+	case RequestTabHeaders:
+		return RequestTabHeadersName
+	case RequestTabParams:
+		return RequestTabParamsName
+	case RequestTabBody:
+		return RequestTabBodyName
+	default:
+		return ""
 	}
 }
 
-func (t *Tabs) Next() {
-	t.active = (t.active + 1) % Tab(len(tabNames))
+type RequestTabs struct {
+	active   RequestTab
+	tabNames []string
+
+	activeStyle   lipgloss.Style
+	inactiveStyle lipgloss.Style
 }
 
-func (t *Tabs) Prev() {
-	if t.active == 0 {
-		t.active = Tab(len(tabNames) - 1)
+func NewRequestTabs() *RequestTabs {
+	return &RequestTabs{
+		active: RequestTabHeaders,
+		tabNames: []string{
+			RequestTabHeadersName,
+			RequestTabParamsName,
+			RequestTabBodyName,
+		},
+		activeStyle: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#7D56F4")).
+			Border(lipgloss.NormalBorder(), false, false, true, false).
+			BorderForeground(lipgloss.Color("#7D56F4")).
+			Padding(0, 2),
+		inactiveStyle: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#626262")).
+			Padding(0, 2),
+	}
+}
+
+func (c *RequestTabs) Next() {
+	c.active = (c.active + 1) % RequestTab(len(c.tabNames))
+}
+
+func (c *RequestTabs) Prev() {
+	if c.active == 0 {
+		c.active = RequestTab(len(c.tabNames) - 1)
 	} else {
-		t.active--
+		c.active--
 	}
 }
 
-func (t *Tabs) Active() Tab {
-	return t.active
+func (c *RequestTabs) Active() RequestTab {
+	return c.active
 }
 
-func (t *Tabs) View(width int) string {
-	activeStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#7D56F4")).
-		Border(lipgloss.NormalBorder(), false, false, true, false).
-		BorderForeground(lipgloss.Color("#7D56F4")).
-		Padding(0, 2)
-
-	inactiveStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#626262")).
-		Padding(0, 2)
-
+func (c *RequestTabs) View(width int) string {
 	var tabs []string
 
-	for i, name := range tabNames {
-		if Tab(i) == t.active {
-			tabs = append(tabs, activeStyle.Render(name))
-		} else {
-			tabs = append(tabs, inactiveStyle.Render(name))
+	for i := range c.tabNames {
+		switch RequestTab(i) == c.active {
+		case true:
+			tabs = append(tabs, c.activeStyle.Render(c.tabNames[i]))
+		case false:
+			tabs = append(tabs, c.inactiveStyle.Render(c.tabNames[i]))
 		}
 	}
 
 	row := lipgloss.JoinHorizontal(lipgloss.Bottom, tabs...)
 
-	// Add separator line under tabs
 	separator := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#444444")).
 		Render(strings.Repeat("─", max(0, width-lipgloss.Width(row))))
 
-	return fmt.Sprintf("%s%s", row, separator)
+	return row + separator
 }
 
 type ResponseTab int
@@ -86,56 +105,73 @@ const (
 	ResponseTabHeaders
 )
 
-var responseTabNames = []string{"Body", "Headers"}
+const (
+	ResponseTabBodyName    string = "Body"
+	ResponseTabHeadersName string = "Headers"
+)
 
-func (t ResponseTab) String() string {
-	return responseTabNames[t]
+func (c ResponseTab) String() string {
+	switch c {
+	case ResponseTabBody:
+		return ResponseTabBodyName
+	case ResponseTabHeaders:
+		return ResponseTabHeadersName
+	default:
+		return ""
+	}
 }
 
 type ResponseTabs struct {
-	active ResponseTab
+	active   ResponseTab
+	tabNames []string
+
+	activeStyle   lipgloss.Style
+	inactiveStyle lipgloss.Style
 }
 
 func NewResponseTabs() *ResponseTabs {
 	return &ResponseTabs{
 		active: ResponseTabBody,
+		tabNames: []string{
+			ResponseTabBodyName,
+			ResponseTabHeadersName,
+		},
+		activeStyle: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#7D56F4")).
+			Border(lipgloss.NormalBorder(), false, false, true, false).
+			BorderForeground(lipgloss.Color("#7D56F4")).
+			Padding(0, 2),
+		inactiveStyle: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#626262")).
+			Padding(0, 2),
 	}
 }
 
-func (t *ResponseTabs) Next() {
-	t.active = (t.active + 1) % ResponseTab(len(responseTabNames))
+func (c *ResponseTabs) Next() {
+	c.active = (c.active + 1) % ResponseTab(len(c.tabNames))
 }
 
-func (t *ResponseTabs) Prev() {
-	if t.active == 0 {
-		t.active = ResponseTab(len(responseTabNames) - 1)
+func (c *ResponseTabs) Prev() {
+	if c.active == 0 {
+		c.active = ResponseTab(len(c.tabNames) - 1)
 	} else {
-		t.active--
+		c.active--
 	}
 }
 
-func (t *ResponseTabs) Active() ResponseTab {
-	return t.active
+func (c *ResponseTabs) Active() ResponseTab {
+	return c.active
 }
 
-func (t *ResponseTabs) View(width int) string {
-	activeStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#7D56F4")).
-		Border(lipgloss.NormalBorder(), false, false, true, false).
-		BorderForeground(lipgloss.Color("#7D56F4")).
-		Padding(0, 2)
-
-	inactiveStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#626262")).
-		Padding(0, 2)
-
+func (c *ResponseTabs) View(width int) string {
 	var tabs []string
-	for i, name := range tabNames {
-		if ResponseTab(i) == t.active {
-			tabs = append(tabs, activeStyle.Render(name))
-		} else {
-			tabs = append(tabs, inactiveStyle.Render(name))
+	for i := range c.tabNames {
+		switch ResponseTab(i) == c.active {
+		case true:
+			tabs = append(tabs, c.activeStyle.Render(c.tabNames[i]))
+		case false:
+			tabs = append(tabs, c.inactiveStyle.Render(c.tabNames[i]))
 		}
 	}
 
@@ -145,5 +181,5 @@ func (t *ResponseTabs) View(width int) string {
 		Foreground(lipgloss.Color("#444444")).
 		Render(strings.Repeat("─", max(0, width-lipgloss.Width(row))))
 
-	return fmt.Sprintf("%s%s", row, separator)
+	return row + separator
 }

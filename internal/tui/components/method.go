@@ -1,4 +1,4 @@
-package tui
+package components
 
 import (
 	"charm.land/lipgloss/v2"
@@ -13,7 +13,6 @@ type MethodSelector struct {
 
 func NewMethodSelector() *MethodSelector {
 	return &MethodSelector{
-		index: 0,
 		methods: []valobj.HTTPMethod{
 			valobj.MethodGet,
 			valobj.MethodPost,
@@ -26,18 +25,18 @@ func NewMethodSelector() *MethodSelector {
 	}
 }
 
-func (m *MethodSelector) Next() {
-	m.index = (m.index + 1) % len(m.methods)
+func (c *MethodSelector) Next() {
+	c.index = (c.index + 1) % len(c.methods)
 }
 
-func (m *MethodSelector) Current() valobj.HTTPMethod {
-	return m.methods[m.index]
+func (c *MethodSelector) Current() valobj.HTTPMethod {
+	return c.methods[c.index]
 }
 
-func (m *MethodSelector) View() string {
+func (c *MethodSelector) View() string {
 	style := lipgloss.NewStyle().Bold(true)
 
-	switch m.Current() {
+	switch c.Current() {
 	case valobj.MethodGet:
 		style = style.Foreground(lipgloss.Color("#73D216"))
 	case valobj.MethodPost:
@@ -52,5 +51,5 @@ func (m *MethodSelector) View() string {
 		style = style.Foreground(lipgloss.Color("#626262"))
 	}
 
-	return style.Render(m.Current().String())
+	return style.Render(c.Current().String())
 }

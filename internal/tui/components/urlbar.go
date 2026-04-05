@@ -1,4 +1,4 @@
-package tui
+package components
 
 import (
 	"charm.land/bubbles/v2/textinput"
@@ -10,44 +10,45 @@ type URLBar struct {
 }
 
 func NewURLBar() *URLBar {
-	ti := textinput.New()
-	ti.Placeholder = "https://api.example.com/endpoint"
-	ti.Prompt = ""
-	ti.CharLimit = 2048
+	input := textinput.New()
+
+	input.Placeholder = "https://api.example.com/endpoint"
+	input.Prompt = ""
+	input.CharLimit = 2048
 
 	return &URLBar{
-		input: ti,
+		input: input,
 	}
 }
 
-func (u *URLBar) Focus() tea.Cmd {
-	return u.input.Focus()
+func (c *URLBar) Focus() tea.Cmd {
+	return c.input.Focus()
 }
 
-func (u *URLBar) Blur() {
-	u.input.Blur()
+func (c *URLBar) Blur() {
+	c.input.Blur()
 }
 
-func (u *URLBar) Value() string {
-	return u.input.Value()
+func (c *URLBar) Value() string {
+	return c.input.Value()
 }
 
-func (u *URLBar) SetValue(s string) {
-	u.input.SetValue(s)
+func (c *URLBar) SetValue(s string) {
+	c.input.SetValue(s)
 }
 
-func (u *URLBar) SetWidth(w int) {
-	u.input.CharLimit = 2048
+func (c *URLBar) SetWidth(w int) {
+	c.input.CharLimit = 2048
 	// textinput doesn't have a Width setter in v2, but the prompt width is handled by the parent
 }
 
-func (u *URLBar) Update(msg tea.Msg) tea.Cmd {
+func (c *URLBar) Update(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
-	u.input, cmd = u.input.Update(msg)
+	c.input, cmd = c.input.Update(msg)
 
 	return cmd
 }
 
-func (u *URLBar) View() string {
-	return u.input.View()
+func (c *URLBar) View() string {
+	return c.input.View()
 }

@@ -1,4 +1,4 @@
-package tui
+package components
 
 import (
 	"charm.land/bubbles/v2/textinput"
@@ -18,54 +18,54 @@ type KVRow struct {
 	enabled bool
 }
 
-func NewKVRow(keyPlaceholder, valuePlaceholder string) *KVRow {
-	k := textinput.New()
-	k.Placeholder = keyPlaceholder
-	k.Prompt = ""
-	k.CharLimit = 256
+func NewKVRow(keyPlaceholder string, valuePlaceholder string) KVRow {
+	key := textinput.New()
+	key.Placeholder = keyPlaceholder
+	key.Prompt = ""
+	key.CharLimit = 256
 
-	v := textinput.New()
-	v.Placeholder = valuePlaceholder
-	v.Prompt = ""
-	v.CharLimit = 1024
+	value := textinput.New()
+	value.Placeholder = valuePlaceholder
+	value.Prompt = ""
+	value.CharLimit = 1024
 
-	return &KVRow{
-		key:     k,
-		value:   v,
+	return KVRow{
+		key:     key,
+		value:   value,
 		enabled: true,
 	}
 }
 
-func (r *KVRow) focusField(field KVField) tea.Cmd {
-	r.key.Blur()
-	r.value.Blur()
+func (c *KVRow) focusField(field KVField) tea.Cmd {
+	c.key.Blur()
+	c.value.Blur()
 
 	switch field {
 	case KVFieldKey:
-		return r.key.Focus()
+		return c.key.Focus()
 	case KVFieldValue:
-		return r.value.Focus()
+		return c.value.Focus()
 	default:
 		return nil
 	}
 }
 
-func (r *KVRow) blur() {
-	r.key.Blur()
-	r.value.Blur()
+func (c *KVRow) blur() {
+	c.key.Blur()
+	c.value.Blur()
 }
 
-func (r *KVRow) update(msg tea.Msg) tea.Cmd {
+func (c *KVRow) update(msg tea.Msg) tea.Cmd {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
-	if r.key.Focused() {
-		r.key, cmd = r.key.Update(msg)
+	if c.key.Focused() {
+		c.key, cmd = c.key.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
-	if r.value.Focused() {
-		r.value, cmd = r.value.Update(msg)
+	if c.value.Focused() {
+		c.value, cmd = c.value.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 

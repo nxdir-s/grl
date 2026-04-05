@@ -1,4 +1,4 @@
-package tui
+package components
 
 import (
 	"fmt"
@@ -10,18 +10,6 @@ import (
 	"github.com/nxdir-s/grl/internal/core/valobj"
 )
 
-type KVEditor struct {
-	rows           []*KVRow
-	cursor         int
-	focusedField   KVField
-	focused        bool
-	keyPlaceholder string
-	valPlaceholder string
-	width          int
-
-	keys KVEditorKeyMap
-}
-
 type KVEditorKeyMap struct {
 	Up       key.Binding
 	Down     key.Binding
@@ -29,22 +17,6 @@ type KVEditorKeyMap struct {
 	AddRow   key.Binding
 	DelRow   key.Binding
 	Toggle   key.Binding
-}
-
-func NewKVEditor(keyPlaceholder, valPlaceholder string) KVEditor {
-	editor := KVEditor{
-		keyPlaceholder: keyPlaceholder,
-		valPlaceholder: valPlaceholder,
-		keys:           defaultKVEditorKeys(),
-	}
-
-	editor.addRow()
-
-	return editor
-}
-
-func (e *KVEditor) addRow() {
-	e.rows = append(e.rows, NewKVRow(e.keyPlaceholder, e.valPlaceholder))
 }
 
 func defaultKVEditorKeys() KVEditorKeyMap {
@@ -76,42 +48,71 @@ func defaultKVEditorKeys() KVEditorKeyMap {
 	}
 }
 
-func (e *KVEditor) Focus() tea.Cmd {
-	e.focused = true
+type KVEditor struct {
+	rows           []KVRow
+	cursor         int
+	focusedField   KVField
+	focused        bool
+	keyPlaceholder string
+	valPlaceholder string
+	width          int
 
-	if len(e.rows) == 0 {
-		e.addRow()
+	keys KVEditorKeyMap
+}
+
+func NewKVEditor(keyPlaceholder, valPlaceholder string) KVEditor {
+	editor := KVEditor{
+		keyPlaceholder: keyPlaceholder,
+		valPlaceholder: valPlaceholder,
+		keys:           defaultKVEditorKeys(),
 	}
 
-	e.cursor = 0
-	e.focusedField = KVFieldKey
+	editor.addRow()
 
-	return e.rows[0].focusField(KVFieldKey)
+	return editor
 }
 
-func (e *KVEditor) Blur() {
-	e.focused = false
+func (c *KVEditor) addRow() {
+	c.rows = append(c.rows, NewKVRow(c.keyPlaceholder, c.valPlaceholder))
+}
 
-	for i := range e.rows {
-		e.rows[i].blur()
+func (c *KVEditor) Focus() tea.Cmd {
+	c.focused = true
+
+	if len(c.rows) == 0 {
+		c.addRow()
+	}
+
+	c.cursor = 0
+	c.focusedField = KVFieldKey
+
+	return c.rows[0].focusField(KVFieldKey)
+}
+
+func (c *KVEditor) Blur() {
+	c.focused = false
+
+	for i := range c.rows {
+		c.rows[i].blur()
 	}
 }
 
-func (e *KVEditor) SetWidth(w int) {
-	e.width = w
+func (c *KVEditor) SetWidth(w int) {
+	c.width = w
 }
 
-func (e KVEditor) Headers() []valobj.Header {
+func (c *KVEditor) Headers() []valobj.Header {
 	var headers []valobj.Header
 
-	for _, r := range e.rows {
-		k := r.key.Value()
-		v := r.value.Value()
+	for i := range c.rows {
+		k := c.rows[i].key.Value()
+		v := c.rows[i].value.Value()
+
 		if k != "" || v != "" {
 			headers = append(headers, valobj.Header{
 				Key:     k,
 				Value:   v,
-				Enabled: r.enabled,
+				Enabled: c.rows[i].enabled,
 			})
 		}
 	}
@@ -119,17 +120,18 @@ func (e KVEditor) Headers() []valobj.Header {
 	return headers
 }
 
-func (e KVEditor) QueryParams() []valobj.QueryParam {
+func (c *KVEditor) QueryParams() []valobj.QueryParam {
 	var params []valobj.QueryParam
 
-	for _, r := range e.rows {
-		k := r.key.Value()
-		v := r.value.Value()
+	for i := range c.rows {
+		k := c.rows[i].key.Value()
+		v := c.rows[i].value.Value()
+
 		if k != "" || v != "" {
 			params = append(params, valobj.QueryParam{
 				Key:     k,
 				Value:   v,
-				Enabled: r.enabled,
+				Enabled: c.rows[i].enabled,
 			})
 		}
 	}
@@ -137,77 +139,77 @@ func (e KVEditor) QueryParams() []valobj.QueryParam {
 	return params
 }
 
-func (e *KVEditor) Update(msg tea.Msg) tea.Cmd {
-	if !e.focused || len(e.rows) == 0 {
+func (c *KVEditor) Update(msg tea.Msg) tea.Cmd {
+	if !c.focused || len(c.rows) == 0 {
 		return nil
 	}
 
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch {
-		case key.Matches(msg, e.keys.Up):
-			if e.cursor > 0 {
-				e.rows[e.cursor].blur()
-				e.cursor--
+		case key.Matches(msg, c.keys.Up):
+			if c.cursor > 0 {
+				c.rows[c.cursor].blur()
+				c.cursor--
 
-				return e.rows[e.cursor].focusField(e.focusedField)
+				return c.rows[c.cursor].focusField(c.focusedField)
 			}
 
 			return nil
-		case key.Matches(msg, e.keys.Down):
-			if e.cursor < len(e.rows)-1 {
-				e.rows[e.cursor].blur()
-				e.cursor++
+		case key.Matches(msg, c.keys.Down):
+			if c.cursor < len(c.rows)-1 {
+				c.rows[c.cursor].blur()
+				c.cursor++
 
-				return e.rows[e.cursor].focusField(e.focusedField)
+				return c.rows[c.cursor].focusField(c.focusedField)
 			}
 
 			return nil
-		case key.Matches(msg, e.keys.TabField):
-			if e.focusedField == KVFieldKey {
-				e.focusedField = KVFieldValue
+		case key.Matches(msg, c.keys.TabField):
+			if c.focusedField == KVFieldKey {
+				c.focusedField = KVFieldValue
 			} else {
-				e.focusedField = KVFieldKey
+				c.focusedField = KVFieldKey
 			}
 
-			return e.rows[e.cursor].focusField(e.focusedField)
-		case key.Matches(msg, e.keys.AddRow):
-			e.rows[e.cursor].blur()
-			e.addRow()
-			e.cursor = len(e.rows) - 1
-			e.focusedField = KVFieldKey
+			return c.rows[c.cursor].focusField(c.focusedField)
+		case key.Matches(msg, c.keys.AddRow):
+			c.rows[c.cursor].blur()
+			c.addRow()
+			c.cursor = len(c.rows) - 1
+			c.focusedField = KVFieldKey
 
-			return e.rows[e.cursor].focusField(KVFieldKey)
-		case key.Matches(msg, e.keys.DelRow):
-			if len(e.rows) <= 1 {
+			return c.rows[c.cursor].focusField(KVFieldKey)
+		case key.Matches(msg, c.keys.DelRow):
+			if len(c.rows) <= 1 {
 				return nil
 			}
 
-			e.rows[e.cursor].blur()
-			e.rows = append(e.rows[:e.cursor], e.rows[e.cursor+1:]...)
+			c.rows[c.cursor].blur()
+			c.rows = append(c.rows[:c.cursor], c.rows[c.cursor+1:]...)
 
-			if e.cursor >= len(e.rows) {
-				e.cursor = len(e.rows) - 1
+			if c.cursor >= len(c.rows) {
+				c.cursor = len(c.rows) - 1
 			}
 
-			return e.rows[e.cursor].focusField(e.focusedField)
-		case key.Matches(msg, e.keys.Toggle):
-			e.rows[e.cursor].enabled = !e.rows[e.cursor].enabled
+			return c.rows[c.cursor].focusField(c.focusedField)
+		case key.Matches(msg, c.keys.Toggle):
+			c.rows[c.cursor].enabled = !c.rows[c.cursor].enabled
 			return nil
 		}
 	}
 
-	return e.rows[e.cursor].update(msg)
+	return c.rows[c.cursor].update(msg)
 }
 
-func (e *KVEditor) View() string {
-	if len(e.rows) == 0 {
+func (c *KVEditor) View() string {
+	if len(c.rows) == 0 {
 		return lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#626262")).
 			Render("  No entries. Press ctrl+n to add.")
 	}
 
-	colWidth := e.width / 2
+	colWidth := c.width / 2
 	if colWidth < 10 {
 		colWidth = 10
 	}
@@ -232,19 +234,19 @@ func (e *KVEditor) View() string {
 	noCursor := "  "
 
 	var rows string
-	for i, r := range e.rows {
+	for i := range c.rows {
 		prefix := noCursor
-		if e.focused && i == e.cursor {
+		if c.focused && i == c.cursor {
 			prefix = cursorStr
 		}
 
 		style := rowStyle
-		if !r.enabled {
+		if !c.rows[i].enabled {
 			style = disabledStyle
 		}
 
 		toggleMark := "●"
-		if !r.enabled {
+		if !c.rows[i].enabled {
 			toggleMark = "○"
 		}
 
@@ -253,8 +255,8 @@ func (e *KVEditor) View() string {
 		row := fmt.Sprintf("%s%s %s%s",
 			prefix,
 			toggleStyle.Render(toggleMark),
-			style.Render(r.key.View()),
-			style.Render(r.value.View()),
+			style.Render(c.rows[i].key.View()),
+			style.Render(c.rows[i].value.View()),
 		)
 
 		rows += row + "\n"
