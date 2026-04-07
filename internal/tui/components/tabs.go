@@ -41,8 +41,8 @@ type RequestTabs struct {
 	inactiveStyle lipgloss.Style
 }
 
-func NewRequestTabs() *RequestTabs {
-	return &RequestTabs{
+func NewRequestTabs() RequestTabs {
+	return RequestTabs{
 		active: RequestTabHeaders,
 		tabNames: []string{
 			RequestTabHeadersName,
@@ -73,11 +73,11 @@ func (c *RequestTabs) Prev() {
 	}
 }
 
-func (c *RequestTabs) Active() RequestTab {
+func (c RequestTabs) Active() RequestTab {
 	return c.active
 }
 
-func (c *RequestTabs) View(width int) string {
+func (c RequestTabs) View(width int) string {
 	var tabs []string
 
 	for i := range c.tabNames {
@@ -129,8 +129,8 @@ type ResponseTabs struct {
 	inactiveStyle lipgloss.Style
 }
 
-func NewResponseTabs() *ResponseTabs {
-	return &ResponseTabs{
+func NewResponseTabs() ResponseTabs {
+	return ResponseTabs{
 		active: ResponseTabBody,
 		tabNames: []string{
 			ResponseTabBodyName,
@@ -160,11 +160,11 @@ func (c *ResponseTabs) Prev() {
 	}
 }
 
-func (c *ResponseTabs) Active() ResponseTab {
+func (c ResponseTabs) Active() ResponseTab {
 	return c.active
 }
 
-func (c *ResponseTabs) View(width int) string {
+func (c ResponseTabs) View(width int) string {
 	var tabs []string
 	for i := range c.tabNames {
 		switch ResponseTab(i) == c.active {

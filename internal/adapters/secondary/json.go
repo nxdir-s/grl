@@ -78,11 +78,6 @@ type JSONAdapter struct {
 }
 
 func NewJSONAdapter(baseDir string, collectionsDir string, opts ...JSONOpt) *JSONAdapter {
-	// collectionsDir := filepath.Join(baseDir, "collections")
-	// if err := os.MkdirAll(collectionsDir, 0o755); err != nil {
-	// 	return nil, err
-	// }
-
 	adapter := &JSONAdapter{
 		baseDir:        baseDir,
 		collectionsDir: collectionsDir,

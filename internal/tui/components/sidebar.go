@@ -65,8 +65,8 @@ type Sidebar struct {
 	keys SidebarKeyMap
 }
 
-func NewSidebar() *Sidebar {
-	return &Sidebar{
+func NewSidebar() Sidebar {
+	return Sidebar{
 		keys: defaultSidebarKeys(),
 		titleStyle: lipgloss.NewStyle().
 			Bold(true).
@@ -165,7 +165,7 @@ func (c *Sidebar) setHistory(history []entity.HistoryEntry) {
 }
 
 // SelectedRequest returns the request at the current cursor, or nil if it's a section header.
-func (c *Sidebar) SelectedRequest() *entity.Request {
+func (c Sidebar) SelectedRequest() *entity.Request {
 	if c.cursor < 0 || c.cursor >= len(c.entries) {
 		return nil
 	}
@@ -173,9 +173,9 @@ func (c *Sidebar) SelectedRequest() *entity.Request {
 	return c.entries[c.cursor].request
 }
 
-func (c *Sidebar) Update(msg tea.Msg) tea.Cmd {
+func (c Sidebar) Update(msg tea.Msg) (Sidebar, tea.Cmd) {
 	if !c.focused || len(c.entries) == 0 {
-		return nil
+		return c, nil
 	}
 
 	switch msg := msg.(type) {
@@ -183,22 +183,22 @@ func (c *Sidebar) Update(msg tea.Msg) tea.Cmd {
 		switch {
 		case key.Matches(msg, c.keys.Up):
 			c.moveCursor(-1)
-			return nil
+			return c, nil
 		case key.Matches(msg, c.keys.Down):
 			c.moveCursor(1)
-			return nil
+			return c, nil
 		case key.Matches(msg, c.keys.Select):
 			if req := c.SelectedRequest(); req != nil {
-				return func() tea.Msg {
+				return c, func() tea.Msg {
 					return NewLoadRequestMsg(req)
 				}
 			}
 
-			return nil
+			return c, nil
 		}
 	}
 
-	return nil
+	return c, nil
 }
 
 func (c *Sidebar) moveCursor(dir int) {
@@ -232,7 +232,7 @@ func (c *Sidebar) moveCursor(dir int) {
 	}
 }
 
-func (c *Sidebar) View() string {
+func (c Sidebar) View() string {
 	if c.width == 0 || c.height == 0 {
 		return ""
 	}

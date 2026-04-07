@@ -101,7 +101,7 @@ func (c *KVEditor) SetWidth(w int) {
 	c.width = w
 }
 
-func (c *KVEditor) Headers() []valobj.Header {
+func (c KVEditor) Headers() []valobj.Header {
 	var headers []valobj.Header
 
 	for i := range c.rows {
@@ -120,7 +120,7 @@ func (c *KVEditor) Headers() []valobj.Header {
 	return headers
 }
 
-func (c *KVEditor) QueryParams() []valobj.QueryParam {
+func (c KVEditor) QueryParams() []valobj.QueryParam {
 	var params []valobj.QueryParam
 
 	for i := range c.rows {
@@ -139,9 +139,9 @@ func (c *KVEditor) QueryParams() []valobj.QueryParam {
 	return params
 }
 
-func (c *KVEditor) Update(msg tea.Msg) tea.Cmd {
+func (c KVEditor) Update(msg tea.Msg) (KVEditor, tea.Cmd) {
 	if !c.focused || len(c.rows) == 0 {
-		return nil
+		return c, nil
 	}
 
 	switch msg := msg.(type) {
@@ -152,19 +152,19 @@ func (c *KVEditor) Update(msg tea.Msg) tea.Cmd {
 				c.rows[c.cursor].blur()
 				c.cursor--
 
-				return c.rows[c.cursor].focusField(c.focusedField)
+				return c, c.rows[c.cursor].focusField(c.focusedField)
 			}
 
-			return nil
+			return c, nil
 		case key.Matches(msg, c.keys.Down):
 			if c.cursor < len(c.rows)-1 {
 				c.rows[c.cursor].blur()
 				c.cursor++
 
-				return c.rows[c.cursor].focusField(c.focusedField)
+				return c, c.rows[c.cursor].focusField(c.focusedField)
 			}
 
-			return nil
+			return c, nil
 		case key.Matches(msg, c.keys.TabField):
 			if c.focusedField == KVFieldKey {
 				c.focusedField = KVFieldValue
@@ -172,17 +172,17 @@ func (c *KVEditor) Update(msg tea.Msg) tea.Cmd {
 				c.focusedField = KVFieldKey
 			}
 
-			return c.rows[c.cursor].focusField(c.focusedField)
+			return c, c.rows[c.cursor].focusField(c.focusedField)
 		case key.Matches(msg, c.keys.AddRow):
 			c.rows[c.cursor].blur()
 			c.addRow()
 			c.cursor = len(c.rows) - 1
 			c.focusedField = KVFieldKey
 
-			return c.rows[c.cursor].focusField(KVFieldKey)
+			return c, c.rows[c.cursor].focusField(KVFieldKey)
 		case key.Matches(msg, c.keys.DelRow):
 			if len(c.rows) <= 1 {
-				return nil
+				return c, nil
 			}
 
 			c.rows[c.cursor].blur()
@@ -192,17 +192,20 @@ func (c *KVEditor) Update(msg tea.Msg) tea.Cmd {
 				c.cursor = len(c.rows) - 1
 			}
 
-			return c.rows[c.cursor].focusField(c.focusedField)
+			return c, c.rows[c.cursor].focusField(c.focusedField)
 		case key.Matches(msg, c.keys.Toggle):
 			c.rows[c.cursor].enabled = !c.rows[c.cursor].enabled
-			return nil
+			return c, nil
 		}
 	}
 
-	return c.rows[c.cursor].update(msg)
+	var cmd tea.Cmd
+	c.rows[c.cursor], cmd = c.rows[c.cursor].update(msg)
+
+	return c, cmd
 }
 
-func (c *KVEditor) View() string {
+func (c KVEditor) View() string {
 	if len(c.rows) == 0 {
 		return lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#626262")).

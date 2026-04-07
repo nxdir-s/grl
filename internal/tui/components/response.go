@@ -20,8 +20,8 @@ type ResponseHeaderPane struct {
 	valStyle lipgloss.Style
 }
 
-func NewResponseHeaderPane() *ResponseHeaderPane {
-	return &ResponseHeaderPane{
+func NewResponseHeaderPane() ResponseHeaderPane {
+	return ResponseHeaderPane{
 		keyStyle: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("#7D56F4")),
@@ -80,18 +80,18 @@ func (c *ResponseHeaderPane) Clear() {
 	}
 }
 
-func (c *ResponseHeaderPane) Update(msg tea.Msg) tea.Cmd {
+func (c ResponseHeaderPane) Update(msg tea.Msg) (ResponseHeaderPane, tea.Cmd) {
 	if !c.ready {
-		return nil
+		return c, nil
 	}
 
 	var cmd tea.Cmd
 	c.viewport, cmd = c.viewport.Update(msg)
 
-	return cmd
+	return c, cmd
 }
 
-func (c *ResponseHeaderPane) View() string {
+func (c ResponseHeaderPane) View() string {
 	if !c.ready {
 		return ""
 	}
@@ -104,8 +104,8 @@ type ResponseBodyPane struct {
 	ready    bool
 }
 
-func NewResponseBodyPane() *ResponseBodyPane {
-	return &ResponseBodyPane{}
+func NewResponseBodyPane() ResponseBodyPane {
+	return ResponseBodyPane{}
 }
 
 func (c *ResponseBodyPane) SetSize(width, height int) {
@@ -137,18 +137,18 @@ func (c *ResponseBodyPane) Clear() {
 	}
 }
 
-func (c *ResponseBodyPane) Update(msg tea.Msg) tea.Cmd {
+func (c ResponseBodyPane) Update(msg tea.Msg) (ResponseBodyPane, tea.Cmd) {
 	if !c.ready {
-		return nil
+		return c, nil
 	}
 
 	var cmd tea.Cmd
 	c.viewport, cmd = c.viewport.Update(msg)
 
-	return cmd
+	return c, cmd
 }
 
-func (c *ResponseBodyPane) View() string {
+func (c ResponseBodyPane) View() string {
 	if !c.ready {
 		return ""
 	}
@@ -162,8 +162,8 @@ type ResponseStatusLine struct {
 	labelStyle lipgloss.Style
 }
 
-func NewResponseStatusLine() *ResponseStatusLine {
-	return &ResponseStatusLine{
+func NewResponseStatusLine() ResponseStatusLine {
+	return ResponseStatusLine{
 		mutedStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")),
 		labelStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")),
 	}
@@ -177,7 +177,7 @@ func (c *ResponseStatusLine) Clear() {
 	c.response = nil
 }
 
-func (c *ResponseStatusLine) View() string {
+func (c ResponseStatusLine) View() string {
 	if c.response == nil {
 		return ""
 	}
@@ -196,7 +196,7 @@ func (c *ResponseStatusLine) View() string {
 	return summary
 }
 
-func (c *ResponseStatusLine) styleForCode() lipgloss.Style {
+func (c ResponseStatusLine) styleForCode() lipgloss.Style {
 	style := lipgloss.NewStyle().Bold(true)
 
 	switch {
@@ -279,10 +279,10 @@ func defaultResponseViewerKeys() ResponseViewerKeyMap {
 }
 
 type ResponseViewer struct {
-	statusLine *ResponseStatusLine
-	tabs       *ResponseTabs
-	bodyPane   *ResponseBodyPane
-	headerPane *ResponseHeaderPane
+	statusLine ResponseStatusLine
+	tabs       ResponseTabs
+	bodyPane   ResponseBodyPane
+	headerPane ResponseHeaderPane
 
 	focused bool
 	hasResp bool
@@ -292,8 +292,8 @@ type ResponseViewer struct {
 	keys ResponseViewerKeyMap
 }
 
-func NewResponseViewer() *ResponseViewer {
-	return &ResponseViewer{
+func NewResponseViewer() ResponseViewer {
+	return ResponseViewer{
 		statusLine: NewResponseStatusLine(),
 		tabs:       NewResponseTabs(),
 		bodyPane:   NewResponseBodyPane(),
@@ -338,13 +338,13 @@ func (c *ResponseViewer) Clear() {
 	c.headerPane.Clear()
 }
 
-func (c *ResponseViewer) HasResponse() bool {
+func (c ResponseViewer) HasResponse() bool {
 	return c.hasResp
 }
 
-func (c *ResponseViewer) Update(msg tea.Msg) tea.Cmd {
+func (c ResponseViewer) Update(msg tea.Msg) (ResponseViewer, tea.Cmd) {
 	if !c.focused || !c.hasResp {
-		return nil
+		return c, nil
 	}
 
 	switch msg := msg.(type) {
@@ -352,10 +352,10 @@ func (c *ResponseViewer) Update(msg tea.Msg) tea.Cmd {
 		switch {
 		case key.Matches(msg, c.keys.NextTab):
 			c.tabs.Next()
-			return nil
+			return c, nil
 		case key.Matches(msg, c.keys.PrevTab):
 			c.tabs.Prev()
-			return nil
+			return c, nil
 		}
 	}
 
@@ -363,15 +363,15 @@ func (c *ResponseViewer) Update(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 	switch c.tabs.Active() {
 	case ResponseTabBody:
-		cmd = c.bodyPane.Update(msg)
+		c.bodyPane, cmd = c.bodyPane.Update(msg)
 	case ResponseTabHeaders:
-		cmd = c.headerPane.Update(msg)
+		c.headerPane, cmd = c.headerPane.Update(msg)
 	}
 
-	return cmd
+	return c, cmd
 }
 
-func (c *ResponseViewer) View() string {
+func (c ResponseViewer) View() string {
 	if !c.hasResp {
 		return ""
 	}

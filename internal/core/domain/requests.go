@@ -31,11 +31,14 @@ func (e *ErrInvalidURL) Error() string {
 
 type Requests struct {
 	service ports.RequestService
+
+	validMethods []valobj.HTTPMethod
 }
 
 func NewRequests(service ports.RequestService) *Requests {
 	return &Requests{
-		service: service,
+		service:      service,
+		validMethods: validMethods(),
 	}
 }
 
@@ -49,9 +52,10 @@ func (d *Requests) Send(ctx context.Context, req *entity.Request) (*entity.Respo
 		return nil, err
 	}
 
-	req.URL = reqURL
+	built := *req
+	built.URL = reqURL
 
-	resp, err := d.service.Send(ctx, req)
+	resp, err := d.service.Send(ctx, &built)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +99,17 @@ func (d *Requests) BuildURL(baseURL string, params []valobj.QueryParam) (string,
 }
 
 func (d *Requests) validMethod(method valobj.HTTPMethod) bool {
-	validMethods := []valobj.HTTPMethod{
+	for i := range d.validMethods {
+		if method == d.validMethods[i] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func validMethods() []valobj.HTTPMethod {
+	return []valobj.HTTPMethod{
 		valobj.MethodGet,
 		valobj.MethodPost,
 		valobj.MethodPut,
@@ -104,12 +118,4 @@ func (d *Requests) validMethod(method valobj.HTTPMethod) bool {
 		valobj.MethodHead,
 		valobj.MethodOptions,
 	}
-
-	for i := range validMethods {
-		if method == validMethods[i] {
-			return true
-		}
-	}
-
-	return false
 }

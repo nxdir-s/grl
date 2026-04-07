@@ -11,8 +11,8 @@ type MethodSelector struct {
 	index   int
 }
 
-func NewMethodSelector() *MethodSelector {
-	return &MethodSelector{
+func NewMethodSelector() MethodSelector {
+	return MethodSelector{
 		methods: []valobj.HTTPMethod{
 			valobj.MethodGet,
 			valobj.MethodPost,
@@ -29,11 +29,11 @@ func (c *MethodSelector) Next() {
 	c.index = (c.index + 1) % len(c.methods)
 }
 
-func (c *MethodSelector) Current() valobj.HTTPMethod {
+func (c MethodSelector) Current() valobj.HTTPMethod {
 	return c.methods[c.index]
 }
 
-func (c *MethodSelector) View() string {
+func (c MethodSelector) View() string {
 	style := lipgloss.NewStyle().Bold(true)
 
 	switch c.Current() {

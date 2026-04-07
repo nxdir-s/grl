@@ -9,14 +9,14 @@ type URLBar struct {
 	input textinput.Model
 }
 
-func NewURLBar() *URLBar {
+func NewURLBar() URLBar {
 	input := textinput.New()
 
 	input.Placeholder = "https://api.example.com/endpoint"
 	input.Prompt = ""
 	input.CharLimit = 2048
 
-	return &URLBar{
+	return URLBar{
 		input: input,
 	}
 }
@@ -29,7 +29,7 @@ func (c *URLBar) Blur() {
 	c.input.Blur()
 }
 
-func (c *URLBar) Value() string {
+func (c URLBar) Value() string {
 	return c.input.Value()
 }
 
@@ -42,13 +42,13 @@ func (c *URLBar) SetWidth(w int) {
 	// textinput doesn't have a Width setter in v2, but the prompt width is handled by the parent
 }
 
-func (c *URLBar) Update(msg tea.Msg) tea.Cmd {
+func (c URLBar) Update(msg tea.Msg) (URLBar, tea.Cmd) {
 	var cmd tea.Cmd
 	c.input, cmd = c.input.Update(msg)
 
-	return cmd
+	return c, cmd
 }
 
-func (c *URLBar) View() string {
+func (c URLBar) View() string {
 	return c.input.View()
 }

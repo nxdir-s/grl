@@ -16,7 +16,6 @@ func (e *ErrRequestNotFound) Error() string {
 
 type Collections struct {
 	service ports.CollectionService
-	history ports.History
 }
 
 func NewCollections(service ports.CollectionService) *Collections {
@@ -60,7 +59,7 @@ func (d *Collections) AddRequest(ctx context.Context, collectionID string, req *
 		req.Name = req.Method.String() + " " + req.URL
 	}
 
-	collection.Requests = append(collection.Requests, req)
+	collection.Requests = append(collection.Requests, *req)
 
 	return d.service.Save(ctx, collection)
 }

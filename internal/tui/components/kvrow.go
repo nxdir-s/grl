@@ -55,7 +55,7 @@ func (c *KVRow) blur() {
 	c.value.Blur()
 }
 
-func (c *KVRow) update(msg tea.Msg) tea.Cmd {
+func (c KVRow) update(msg tea.Msg) (KVRow, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
@@ -69,5 +69,5 @@ func (c *KVRow) update(msg tea.Msg) tea.Cmd {
 		cmds = append(cmds, cmd)
 	}
 
-	return tea.Batch(cmds...)
+	return c, tea.Batch(cmds...)
 }

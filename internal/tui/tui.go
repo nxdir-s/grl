@@ -21,8 +21,8 @@ type KeyMap struct {
 	Quit        key.Binding
 }
 
-func defaultKeyMap() *KeyMap {
-	return &KeyMap{
+func defaultKeyMap() KeyMap {
+	return KeyMap{
 		Send: key.NewBinding(
 			key.WithKeys("ctrl+s"),
 			key.WithHelp("ctrl+s", "send"),
@@ -42,7 +42,7 @@ func defaultKeyMap() *KeyMap {
 	}
 }
 
-func (m *KeyMap) ShortHelp() []key.Binding {
+func (m KeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{
 		m.Send,
 		m.CycleMethod,
@@ -51,7 +51,7 @@ func (m *KeyMap) ShortHelp() []key.Binding {
 	}
 }
 
-func (m *KeyMap) FullHelp() [][]key.Binding {
+func (m KeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		[]key.Binding{
 			m.Send,
@@ -81,15 +81,15 @@ type TUIOpts func(t *TUI)
 type TUI struct {
 	adapter ports.CLI
 
-	sidebar   *components.Sidebar
-	method    *components.MethodSelector
-	urlBar    *components.URLBar
-	builder   *components.RequestBuilder
-	response  *components.ResponseViewer
-	statusBar *components.StatusBar
+	sidebar   components.Sidebar
+	method    components.MethodSelector
+	urlBar    components.URLBar
+	builder   components.RequestBuilder
+	response  components.ResponseViewer
+	statusBar components.StatusBar
 
 	focus  FocusPanel
-	keys   *KeyMap
+	keys   KeyMap
 	width  int
 	height int
 
@@ -177,6 +177,7 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		t.response.SetResponse(msg.Response)
 
 		return t, t.recordHistory(msg.Request, msg.Response)
+		// return t, nil
 	case components.RequestErrorMsg:
 		t.loading = false
 		t.err = msg.Err
@@ -201,13 +202,13 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch t.focus {
 	case FocusSidebar:
-		cmd = t.sidebar.Update(msg)
+		t.sidebar, cmd = t.sidebar.Update(msg)
 	case FocusURLBar:
-		cmd = t.urlBar.Update(msg)
+		t.urlBar, cmd = t.urlBar.Update(msg)
 	case FocusRequestBuilder:
-		cmd = t.builder.Update(msg)
+		t.builder, cmd = t.builder.Update(msg)
 	case FocusResponseViewer:
-		cmd = t.response.Update(msg)
+		t.response, cmd = t.response.Update(msg)
 	}
 
 	return t, cmd
@@ -403,10 +404,8 @@ func (t *TUI) sendRequest() tea.Cmd {
 		Body:    t.builder.GetBody(),
 	}
 
-	ctx := context.Background()
-
 	return func() tea.Msg {
-		resp, err := t.adapter.SendRequest(ctx, req)
+		resp, err := t.adapter.SendRequest(context.Background(), req)
 		if err != nil {
 			return components.RequestErrorMsg{
 				Err: err,

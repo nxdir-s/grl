@@ -35,7 +35,7 @@ type CollectionService interface {
 
 type History interface {
 	Load(ctx context.Context, limit int) ([]entity.HistoryEntry, error)
-	Append(ctx context.Context, req *entity.Request, resp *entity.Response)
+	Append(ctx context.Context, req *entity.Request, resp *entity.Response) error
 }
 
 type HistoryService interface {

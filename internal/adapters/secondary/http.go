@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"io"
+	"log/slog"
 	"math"
 	"net"
 	"net/http"
@@ -66,6 +67,12 @@ func (e *ErrReadRespBody) Error() string {
 	return "failed to read response body: " + e.err.Error()
 }
 
+type ErrNilRequest struct{}
+
+func (e *ErrNilRequest) Error() string {
+	return "recieved nil request"
+}
+
 type HttpOpt func(a *HttpAdapter)
 
 func WithHttpClient(client *http.Client) HttpOpt {
@@ -85,11 +92,12 @@ type HttpConfig struct {
 }
 
 type HttpAdapter struct {
-	http  *http.Client
-	limit int64
+	http   *http.Client
+	limit  int64
+	logger *slog.Logger
 }
 
-func NewHttpAdapter(cfg *HttpConfig, opts ...HttpOpt) *HttpAdapter {
+func NewHttpAdapter(cfg *HttpConfig, logger *slog.Logger, opts ...HttpOpt) *HttpAdapter {
 	var timeout int = DefaultTimeout * int(time.Second)
 	if cfg.Timeout != 0 {
 		timeout = cfg.Timeout
@@ -133,7 +141,8 @@ func NewHttpAdapter(cfg *HttpConfig, opts ...HttpOpt) *HttpAdapter {
 			Timeout:   time.Duration(timeout),
 			Transport: transport,
 		},
-		limit: byteLimit,
+		limit:  byteLimit,
+		logger: logger,
 	}
 
 	for _, opt := range opts {
@@ -144,6 +153,10 @@ func NewHttpAdapter(cfg *HttpConfig, opts ...HttpOpt) *HttpAdapter {
 }
 
 func (a *HttpAdapter) Send(ctx context.Context, req *entity.Request) (*entity.Response, error) {
+	if req == nil {
+		return nil, &ErrNilRequest{}
+	}
+
 	var bodyReader io.Reader
 	if len(req.Body) != 0 {
 		bodyReader = strings.NewReader(req.Body)
@@ -154,9 +167,9 @@ func (a *HttpAdapter) Send(ctx context.Context, req *entity.Request) (*entity.Re
 		return nil, err
 	}
 
-	for _, h := range req.Headers {
-		if h.Enabled && len(h.Key) != 0 {
-			httpReq.Header.Set(h.Key, h.Value)
+	for i := range req.Headers {
+		if req.Headers[i].Enabled && len(req.Headers[i].Key) != 0 {
+			httpReq.Header.Set(req.Headers[i].Key, req.Headers[i].Value)
 		}
 	}
 
@@ -211,7 +224,7 @@ func (a *HttpAdapter) Send(ctx context.Context, req *entity.Request) (*entity.Re
 		return nil, &ErrHttpStatusCode{httpResp.StatusCode, errBody}
 	}
 
-	var body *bytes.Buffer
+	body := &bytes.Buffer{}
 	if _, err := io.Copy(body, io.LimitReader(httpResp.Body, a.limit)); err != nil {
 		return nil, &ErrReadRespBody{err}
 	}

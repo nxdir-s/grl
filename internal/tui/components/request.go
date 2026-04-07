@@ -26,10 +26,10 @@ func defaultBuilderKeys() RequestBuilderKeyMap {
 }
 
 type RequestBuilder struct {
-	tabs    *RequestTabs
+	tabs    RequestTabs
 	headers KVEditor
 	params  KVEditor
-	body    *RequestBodyEditor
+	body    RequestBodyEditor
 
 	focused bool
 	width   int
@@ -38,8 +38,8 @@ type RequestBuilder struct {
 	keys RequestBuilderKeyMap
 }
 
-func NewRequestBuilder() *RequestBuilder {
-	return &RequestBuilder{
+func NewRequestBuilder() RequestBuilder {
+	return RequestBuilder{
 		tabs:    NewRequestTabs(),
 		headers: NewKVEditor("Header name", "Header value"),
 		params:  NewKVEditor("Parameter name", "Parameter value"),
@@ -75,25 +75,25 @@ func (c *RequestBuilder) SetSize(width, height int) {
 	c.body.SetHeight(contentHeight)
 }
 
-func (c *RequestBuilder) GetHeaders() []valobj.Header {
+func (c RequestBuilder) GetHeaders() []valobj.Header {
 	return c.headers.Headers()
 }
 
-func (c *RequestBuilder) GetParams() []valobj.QueryParam {
+func (c RequestBuilder) GetParams() []valobj.QueryParam {
 	return c.params.QueryParams()
 }
 
-func (c *RequestBuilder) GetBody() string {
+func (c RequestBuilder) GetBody() string {
 	return c.body.Value()
 }
 
-func (c *RequestBuilder) ActiveTab() RequestTab {
+func (c RequestBuilder) ActiveTab() RequestTab {
 	return c.tabs.Active()
 }
 
-func (c *RequestBuilder) Update(msg tea.Msg) tea.Cmd {
+func (c RequestBuilder) Update(msg tea.Msg) (RequestBuilder, tea.Cmd) {
 	if !c.focused {
-		return nil
+		return c, nil
 	}
 
 	switch msg := msg.(type) {
@@ -103,29 +103,29 @@ func (c *RequestBuilder) Update(msg tea.Msg) tea.Cmd {
 			c.blurActiveTab()
 			c.tabs.Next()
 
-			return c.focusActiveTab()
+			return c, c.focusActiveTab()
 		case key.Matches(msg, c.keys.PrevTab):
 			c.blurActiveTab()
 			c.tabs.Prev()
 
-			return c.focusActiveTab()
+			return c, c.focusActiveTab()
 		}
 	}
 
 	var cmd tea.Cmd
 	switch c.tabs.Active() {
 	case RequestTabHeaders:
-		cmd = c.headers.Update(msg)
+		c.headers, cmd = c.headers.Update(msg)
 	case RequestTabParams:
-		cmd = c.params.Update(msg)
+		c.params, cmd = c.params.Update(msg)
 	case RequestTabBody:
-		cmd = c.body.Update(msg)
+		c.body, cmd = c.body.Update(msg)
 	}
 
-	return cmd
+	return c, cmd
 }
 
-func (c *RequestBuilder) View() string {
+func (c RequestBuilder) View() string {
 	tabsView := c.tabs.View(c.width)
 
 	var content string
@@ -165,14 +165,14 @@ type RequestBodyEditor struct {
 	focused  bool
 }
 
-func NewRequestBodyEditor() *RequestBodyEditor {
+func NewRequestBodyEditor() RequestBodyEditor {
 	text := textarea.New()
 
 	text.Placeholder = "Request body (JSON, XML, text...)"
 	text.ShowLineNumbers = false
 	text.SetHeight(6)
 
-	return &RequestBodyEditor{
+	return RequestBodyEditor{
 		textarea: text,
 	}
 }
@@ -195,21 +195,21 @@ func (c *RequestBodyEditor) SetHeight(h int) {
 	c.textarea.SetHeight(h)
 }
 
-func (c *RequestBodyEditor) Value() string {
+func (c RequestBodyEditor) Value() string {
 	return c.textarea.Value()
 }
 
-func (c *RequestBodyEditor) Update(msg tea.Msg) tea.Cmd {
+func (c RequestBodyEditor) Update(msg tea.Msg) (RequestBodyEditor, tea.Cmd) {
 	if !c.focused {
-		return nil
+		return c, nil
 	}
 
 	var cmd tea.Cmd
 	c.textarea, cmd = c.textarea.Update(msg)
 
-	return cmd
+	return c, cmd
 }
 
-func (c *RequestBodyEditor) View() string {
+func (c RequestBodyEditor) View() string {
 	return c.textarea.View()
 }
