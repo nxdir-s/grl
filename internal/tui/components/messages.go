@@ -28,3 +28,12 @@ type SaveToCollectionMsg struct {
 type ErrorMsg struct {
 	Err error
 }
+
+type EnvironmentsUpdatedMsg struct {
+	Environments []entity.Environment
+	Active       *entity.Environment
+}
+
+type EnvironmentSwitchedMsg struct {
+	Active *entity.Environment
+}

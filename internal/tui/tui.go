@@ -3,7 +3,6 @@ package tui
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"charm.land/bubbles/v2/key"
@@ -18,6 +17,7 @@ type KeyMap struct {
 	Send        key.Binding
 	CycleMethod key.Binding
 	FocusNext   key.Binding
+	EnvModal    key.Binding
 	Quit        key.Binding
 }
 
@@ -35,6 +35,10 @@ func defaultKeyMap() KeyMap {
 			key.WithKeys("esc"),
 			key.WithHelp("esc", "switch panel"),
 		),
+		EnvModal: key.NewBinding(
+			key.WithKeys("ctrl+e"),
+			key.WithHelp("ctrl+e", "environments"),
+		),
 		Quit: key.NewBinding(
 			key.WithKeys("ctrl+c"),
 			key.WithHelp("ctrl+c", "quit"),
@@ -47,6 +51,7 @@ func (m KeyMap) ShortHelp() []key.Binding {
 		m.Send,
 		m.CycleMethod,
 		m.FocusNext,
+		m.EnvModal,
 		m.Quit,
 	}
 }
@@ -57,6 +62,7 @@ func (m KeyMap) FullHelp() [][]key.Binding {
 			m.Send,
 			m.CycleMethod,
 			m.FocusNext,
+			m.EnvModal,
 			m.Quit,
 		},
 	}
@@ -78,7 +84,14 @@ const (
 
 type TUIOpts func(t *TUI)
 
+func WithContext(ctx context.Context) TUIOpts {
+	return func(t *TUI) {
+		t.ctx = ctx
+	}
+}
+
 type TUI struct {
+	ctx     context.Context
 	adapter ports.CLI
 
 	sidebar   components.Sidebar
@@ -87,6 +100,7 @@ type TUI struct {
 	builder   components.RequestBuilder
 	response  components.ResponseViewer
 	statusBar components.StatusBar
+	envModal  components.Modal
 
 	focus  FocusPanel
 	keys   KeyMap
@@ -99,6 +113,8 @@ type TUI struct {
 	styles Styles
 	theme  Theme
 
+	activeEnv *entity.Environment
+
 	loading bool
 	err     error
 }
@@ -107,6 +123,7 @@ func New(adapter ports.CLI, opts ...TUIOpts) *TUI {
 	theme := NewTheme()
 
 	ui := &TUI{
+		ctx:          context.Background(),
 		adapter:      adapter,
 		sidebar:      components.NewSidebar(),
 		method:       components.NewMethodSelector(),
@@ -114,6 +131,7 @@ func New(adapter ports.CLI, opts ...TUIOpts) *TUI {
 		builder:      components.NewRequestBuilder(),
 		response:     components.NewResponseViewer(),
 		statusBar:    components.NewStatusBar(),
+		envModal:     components.NewModal(),
 		focus:        FocusURLBar,
 		keys:         defaultKeyMap(),
 		panelCount:   PanelCount,
@@ -143,6 +161,7 @@ func (t *TUI) Init() tea.Cmd {
 	return tea.Batch(
 		t.urlBar.Focus(),
 		t.loadSidebarData(),
+		t.loadEnvironments(),
 	)
 }
 
@@ -152,13 +171,23 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		t.width = msg.Width
 		t.height = msg.Height
 		t.statusBar.SetWidth(t.width)
+		t.envModal.SetSize(t.width, t.height)
 		t.recalcLayout()
 
 		return t, nil
 	case tea.KeyPressMsg:
+		if t.envModal.IsOpen() {
+			var cmd tea.Cmd
+			t.envModal, cmd = t.envModal.Update(msg)
+			return t, cmd
+		}
+
 		switch {
 		case key.Matches(msg, t.keys.Quit):
 			return t, tea.Quit
+		case key.Matches(msg, t.keys.EnvModal):
+			t.envModal.Open()
+			return t, t.loadEnvironments()
 		case key.Matches(msg, t.keys.CycleMethod):
 			t.method.Next()
 			return t, nil
@@ -177,7 +206,6 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		t.response.SetResponse(msg.Response)
 
 		return t, t.recordHistory(msg.Request, msg.Response)
-		// return t, nil
 	case components.RequestErrorMsg:
 		t.loading = false
 		t.err = msg.Err
@@ -190,6 +218,27 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case components.CollectionsUpdatedMsg:
 		t.updateSidebarCollections(msg)
 		return t, nil
+	case components.EnvironmentsUpdatedMsg:
+		t.activeEnv = msg.Active
+		activeID := ""
+		if msg.Active != nil {
+			activeID = msg.Active.ID
+		}
+
+		t.envModal.SetData(msg.Environments, activeID)
+
+		return t, nil
+	case components.EnvironmentSwitchedMsg:
+		t.activeEnv = msg.Active
+		return t, t.loadEnvironments()
+	case components.ActivateEnvMsg:
+		return t, t.activateEnv(msg.ID)
+	case components.CreateEnvMsg:
+		return t, t.createEnv(msg.Name)
+	case components.DeleteEnvMsg:
+		return t, t.deleteEnv(msg.ID)
+	case components.SaveEnvMsg:
+		return t, t.saveEnv(msg.Env)
 	case components.LoadRequestMsg:
 		t.loadRequest(msg.Request)
 		return t, nil
@@ -198,7 +247,13 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return t, nil
 	}
 
-	// Route input to focused panel
+	// If modal is open, route non-key messages to it
+	if t.envModal.IsOpen() {
+		var cmd tea.Cmd
+		t.envModal, cmd = t.envModal.Update(msg)
+		return t, cmd
+	}
+
 	var cmd tea.Cmd
 	switch t.focus {
 	case FocusSidebar:
@@ -239,7 +294,6 @@ func (t *TUI) View() tea.View {
 
 	builderView := t.requestBuilder()
 
-	// Right column: request area (URL + builder stacked vertically)
 	requestContent := lipgloss.JoinVertical(
 		lipgloss.Left,
 		requestRow,
@@ -248,7 +302,7 @@ func (t *TUI) View() tea.View {
 	)
 
 	// Pad columns to fill height
-	helpView := t.styles.statusBar.Render(t.statusBar.View(t.keys))
+	helpView := t.styles.statusBar.Render(t.statusBar.View(t.keys) + "  " + t.envBadge())
 	mainHeight := t.height - lipgloss.Height(helpView) - 1
 
 	responseCol := lipgloss.NewStyle().
@@ -261,7 +315,6 @@ func (t *TUI) View() tea.View {
 		Height(mainHeight).
 		Render(requestContent)
 
-	// Vertical separator between response and request columns
 	colSeparator := lipgloss.NewStyle().
 		Foreground(t.theme.colorBorder).
 		Height(mainHeight).
@@ -269,11 +322,19 @@ func (t *TUI) View() tea.View {
 
 	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, requestCol, colSeparator, responseCol)
 
-	// Sidebar
 	sidebarView := t.sidebar.View()
 
-	// Compose sidebar + main
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebarView, mainContent)
+
+	if t.envModal.IsOpen() {
+		bodyWidth := t.width
+		bodyHeight := mainHeight
+		body = lipgloss.Place(
+			bodyWidth, bodyHeight,
+			lipgloss.Center, lipgloss.Center,
+			t.envModal.View(),
+		)
+	}
 
 	view := lipgloss.JoinVertical(lipgloss.Left, body, helpView)
 
@@ -283,8 +344,19 @@ func (t *TUI) View() tea.View {
 	return v
 }
 
+func (t *TUI) envBadge() string {
+	name := "none"
+
+	if t.activeEnv != nil {
+		name = t.activeEnv.Name
+	}
+
+	style := lipgloss.NewStyle().Foreground(t.theme.colorPrimary).Bold(true)
+
+	return style.Render("env: " + name)
+}
+
 func (t *TUI) responseSection() string {
-	// Response section (left column)
 	var responseSection string
 
 	switch {
@@ -405,7 +477,7 @@ func (t *TUI) sendRequest() tea.Cmd {
 	}
 
 	return func() tea.Msg {
-		resp, err := t.adapter.SendRequest(context.Background(), req)
+		resp, err := t.adapter.SendRequest(t.ctx, req)
 		if err != nil {
 			return components.RequestErrorMsg{
 				Err: err,
@@ -421,15 +493,13 @@ func (t *TUI) sendRequest() tea.Cmd {
 
 func (t *TUI) recordHistory(req *entity.Request, resp *entity.Response) tea.Cmd {
 	return func() tea.Msg {
-		ctx := context.Background()
-
-		if err := t.adapter.RecordHistory(ctx, req, resp); err != nil {
+		if err := t.adapter.RecordHistory(t.ctx, req, resp); err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		history, err := t.adapter.GetHistory(ctx, 50)
+		history, err := t.adapter.GetHistory(t.ctx, 50)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
@@ -444,19 +514,20 @@ func (t *TUI) recordHistory(req *entity.Request, resp *entity.Response) tea.Cmd 
 
 func (t *TUI) loadSidebarData() tea.Cmd {
 	return func() tea.Msg {
-		ctx := context.Background()
-
-		history, err := t.adapter.GetHistory(ctx, 50)
+		history, err := t.adapter.GetHistory(t.ctx, 50)
 		if err != nil {
-			fmt.Fprintf(os.Stdout, "failed to get history: %s\n", err.Error())
+			return components.ErrorMsg{
+				Err: err,
+			}
 		}
 
-		collections, err := t.adapter.ListCollections(ctx)
+		collections, err := t.adapter.ListCollections(t.ctx)
 		if err != nil {
-			fmt.Fprintf(os.Stdout, "failed to list collections: %s\n", err.Error())
+			return components.ErrorMsg{
+				Err: err,
+			}
 		}
 
-		// Use a batch to send both updates
 		t.sidebar.SetData(history, collections)
 
 		return components.HistoryUpdatedMsg{
@@ -465,23 +536,158 @@ func (t *TUI) loadSidebarData() tea.Cmd {
 	}
 }
 
-func (t *TUI) updateSidebarFromMsg(msg components.HistoryUpdatedMsg) {
-	ctx := context.Background()
+func (t *TUI) loadEnvironments() tea.Cmd {
+	return func() tea.Msg {
+		envs, err := t.adapter.ListEnvironments(t.ctx)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
 
-	collections, err := t.adapter.ListCollections(ctx)
+		active, err := t.adapter.GetActiveEnvironment(t.ctx)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.EnvironmentsUpdatedMsg{
+			Environments: envs,
+			Active:       active,
+		}
+	}
+}
+
+func (t *TUI) activateEnv(id string) tea.Cmd {
+	return func() tea.Msg {
+		if err := t.adapter.SetActiveEnvironment(t.ctx, id); err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		active, err := t.adapter.GetActiveEnvironment(t.ctx)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		envs, err := t.adapter.ListEnvironments(t.ctx)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.EnvironmentsUpdatedMsg{
+			Environments: envs,
+			Active:       active,
+		}
+	}
+}
+
+func (t *TUI) createEnv(name string) tea.Cmd {
+	return func() tea.Msg {
+		if _, err := t.adapter.CreateEnvironment(t.ctx, name); err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		envs, err := t.adapter.ListEnvironments(t.ctx)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		active, err := t.adapter.GetActiveEnvironment(t.ctx)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.EnvironmentsUpdatedMsg{
+			Environments: envs,
+			Active:       active,
+		}
+	}
+}
+
+func (t *TUI) deleteEnv(id string) tea.Cmd {
+	return func() tea.Msg {
+		if err := t.adapter.DeleteEnvironment(t.ctx, id); err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		envs, err := t.adapter.ListEnvironments(t.ctx)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		active, err := t.adapter.GetActiveEnvironment(t.ctx)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.EnvironmentsUpdatedMsg{
+			Environments: envs,
+			Active:       active,
+		}
+	}
+}
+
+func (t *TUI) saveEnv(env *entity.Environment) tea.Cmd {
+	return func() tea.Msg {
+		if err := t.adapter.SaveEnvironment(t.ctx, env); err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		envs, err := t.adapter.ListEnvironments(t.ctx)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		active, err := t.adapter.GetActiveEnvironment(t.ctx)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.EnvironmentsUpdatedMsg{
+			Environments: envs,
+			Active:       active,
+		}
+	}
+}
+
+func (t *TUI) updateSidebarFromMsg(msg components.HistoryUpdatedMsg) {
+	collections, err := t.adapter.ListCollections(t.ctx)
 	if err != nil {
-		fmt.Fprintf(os.Stdout, "failed to list collections: %s\n", err.Error())
+		collections = make([]entity.Collection, 0)
 	}
 
 	t.sidebar.SetData(msg.History, collections)
 }
 
 func (t *TUI) updateSidebarCollections(msg components.CollectionsUpdatedMsg) {
-	ctx := context.Background()
-
-	history, err := t.adapter.GetHistory(ctx, 50)
+	history, err := t.adapter.GetHistory(t.ctx, 50)
 	if err != nil {
-		fmt.Fprintf(os.Stdout, "failed to get history: %s\n", err.Error())
+		history = make([]entity.HistoryEntry, 0)
 	}
 
 	t.sidebar.SetData(history, msg.Collections)

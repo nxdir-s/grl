@@ -11,4 +11,12 @@ type CLI interface {
 	RecordHistory(ctx context.Context, req *entity.Request, resp *entity.Response) error
 	GetHistory(ctx context.Context, limit int) ([]entity.HistoryEntry, error)
 	ListCollections(ctx context.Context) ([]entity.Collection, error)
+	CreateEnvironment(ctx context.Context, name string) (*entity.Environment, error)
+	ListEnvironments(ctx context.Context) ([]entity.Environment, error)
+	GetEnvironment(ctx context.Context, id string) (*entity.Environment, error)
+	SaveEnvironment(ctx context.Context, env *entity.Environment) error
+	DeleteEnvironment(ctx context.Context, id string) error
+	GetActiveEnvironment(ctx context.Context) (*entity.Environment, error)
+	SetActiveEnvironment(ctx context.Context, id string) error
+	GetActiveEnvVars(ctx context.Context) (map[string]string, error)
 }

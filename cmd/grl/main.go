@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -20,12 +21,9 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
-
 	home, err := os.UserHomeDir()
 	if err != nil {
-		logger.Error("failed to get current home directory", slog.String("err", err.Error()))
+		fmt.Fprintf(os.Stdout, "failed to get current home directory: %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -33,9 +31,25 @@ func main() {
 
 	collectionsDir := filepath.Join(dataDir, "collections")
 	if err := os.MkdirAll(collectionsDir, 0o755); err != nil {
-		logger.Error("failed to create collections directory", slog.String("err", err.Error()))
+		fmt.Fprintf(os.Stdout, "failed to create collections directory: %s\n", err.Error())
 		os.Exit(1)
 	}
+
+	environmentsDir := filepath.Join(dataDir, "environments")
+	if err := os.MkdirAll(environmentsDir, 0o755); err != nil {
+		fmt.Fprintf(os.Stdout, "failed to create environments directory: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	logPath := filepath.Join(dataDir, "out.log")
+	logFile, err := os.Create(logPath)
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "failed to create log file: %s\n", err.Error())
+		os.Exit(1)
+	}
+
+	logger := slog.New(slog.NewTextHandler(logFile, nil))
+	slog.SetDefault(logger)
 
 	var http ports.Http
 	var storage ports.Storage
@@ -43,10 +57,15 @@ func main() {
 	var requestService ports.RequestService
 	var collectionService ports.CollectionService
 	var historyService ports.HistoryService
+	var environmentService ports.EnvironmentService
+	var configService ports.ConfigService
 
 	var requests ports.Requests
 	var collections ports.Collections
 	var history ports.History
+	var configs ports.Configs
+	var environments ports.Environments
+	var substitutions ports.Substitutions
 
 	httpCfg := &secondary.HttpConfig{
 		TlsConfig: &tls.Config{
@@ -55,15 +74,20 @@ func main() {
 	}
 
 	http = secondary.NewHttpAdapter(httpCfg, logger)
-	storage = secondary.NewJSONAdapter(dataDir, collectionsDir)
+	storage = secondary.NewJSONAdapter(logger, dataDir, collectionsDir, environmentsDir)
 
 	requestService = service.NewRequestService(http)
 	collectionService = service.NewCollectionService(storage)
 	historyService = service.NewHistoryService(storage)
+	environmentService = service.NewEnvironmentService(storage)
+	configService = service.NewConfigService(storage)
 
-	requests = domain.NewRequests(requestService)
+	configs = domain.NewConfigs(configService)
+	environments = domain.NewEnvironments(environmentService, configs)
+	substitutions = domain.NewSubstitutions()
 	collections = domain.NewCollections(collectionService)
 	history = domain.NewHistory(historyService)
+	requests = domain.NewRequests(requestService, environments, substitutions)
 
 	var adapter ports.CLI
 
@@ -71,6 +95,7 @@ func main() {
 		primary.WithRequests(requests),
 		primary.WithCollections(collections),
 		primary.WithHistory(history),
+		primary.WithEnvironments(environments),
 	)
 
 	app := tui.New(adapter)

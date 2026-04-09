@@ -3,16 +3,19 @@ package secondary
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
 
 	"github.com/nxdir-s/grl/internal/core/entity"
+	"github.com/nxdir-s/grl/internal/core/valobj"
 )
 
 const (
 	JSONFileExt         string = ".json"
 	JSONHistoryFileName string = "history"
+	JSONConfigFileName  string = "config"
 )
 
 type ErrSaveCollection struct {
@@ -63,6 +66,54 @@ func (e *ErrLoadHistory) Error() string {
 	return "failed to load history: " + e.err.Error()
 }
 
+type ErrSaveEnvironment struct {
+	err error
+}
+
+func (e *ErrSaveEnvironment) Error() string {
+	return "failed to save environment: " + e.err.Error()
+}
+
+type ErrLoadEnvironment struct {
+	err error
+}
+
+func (e *ErrLoadEnvironment) Error() string {
+	return "failed to load environment: " + e.err.Error()
+}
+
+type ErrListEnvironments struct {
+	err error
+}
+
+func (e *ErrListEnvironments) Error() string {
+	return "failed to list environments: " + e.err.Error()
+}
+
+type ErrDeleteEnvironment struct {
+	err error
+}
+
+func (e *ErrDeleteEnvironment) Error() string {
+	return "failed to delete environment: " + e.err.Error()
+}
+
+type ErrSaveConfig struct {
+	err error
+}
+
+func (e *ErrSaveConfig) Error() string {
+	return "failed to save config: " + e.err.Error()
+}
+
+type ErrLoadConfig struct {
+	err error
+}
+
+func (e *ErrLoadConfig) Error() string {
+	return "failed to load config: " + e.err.Error()
+}
+
 type JSONOpt func(a *JSONAdapter)
 
 func WithJSONHistoryFile(filePath string) JSONOpt {
@@ -71,17 +122,29 @@ func WithJSONHistoryFile(filePath string) JSONOpt {
 	}
 }
 
-type JSONAdapter struct {
-	baseDir        string
-	collectionsDir string
-	historyFile    string
+func WithJSONConfigFile(filePath string) JSONOpt {
+	return func(a *JSONAdapter) {
+		a.configFile = filePath
+	}
 }
 
-func NewJSONAdapter(baseDir string, collectionsDir string, opts ...JSONOpt) *JSONAdapter {
+type JSONAdapter struct {
+	logger          *slog.Logger
+	baseDir         string
+	collectionsDir  string
+	environmentsDir string
+	historyFile     string
+	configFile      string
+}
+
+func NewJSONAdapter(logger *slog.Logger, baseDir string, collectionsDir string, environmentsDir string, opts ...JSONOpt) *JSONAdapter {
 	adapter := &JSONAdapter{
-		baseDir:        baseDir,
-		collectionsDir: collectionsDir,
-		historyFile:    filepath.Join(baseDir, JSONHistoryFileName+JSONFileExt),
+		logger:          logger,
+		baseDir:         baseDir,
+		collectionsDir:  collectionsDir,
+		environmentsDir: environmentsDir,
+		historyFile:     filepath.Join(baseDir, JSONHistoryFileName+JSONFileExt),
+		configFile:      filepath.Join(baseDir, JSONConfigFileName+JSONFileExt),
 	}
 
 	for _, opt := range opts {
@@ -192,6 +255,120 @@ func (a *JSONAdapter) LoadHistory(ctx context.Context) ([]entity.HistoryEntry, e
 	}
 
 	return history, nil
+}
+
+func (s *JSONAdapter) SaveEnvironment(ctx context.Context, env *entity.Environment) error {
+	data, err := json.MarshalIndent(env, "", "  ")
+	if err != nil {
+		return &ErrSaveEnvironment{err}
+	}
+
+	path := filepath.Join(s.environmentsDir, env.ID+".json")
+
+	s.logger.Info("saving environment",
+		slog.String("id", env.ID),
+		slog.String("name", env.Name),
+		slog.String("filePath", path),
+	)
+
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return &ErrSaveEnvironment{err}
+	}
+
+	return nil
+}
+
+func (s *JSONAdapter) LoadEnvironment(ctx context.Context, id string) (*entity.Environment, error) {
+	path := filepath.Join(s.environmentsDir, id+".json")
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, &ErrLoadEnvironment{err}
+	}
+
+	var env entity.Environment
+	if err := json.Unmarshal(data, &env); err != nil {
+		return nil, &ErrLoadEnvironment{err}
+	}
+
+	return &env, nil
+}
+
+func (s *JSONAdapter) ListEnvironments(ctx context.Context) ([]entity.Environment, error) {
+	entries, err := os.ReadDir(s.environmentsDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+
+		return nil, &ErrListEnvironments{err}
+	}
+
+	var envs []entity.Environment
+	for i := range entries {
+		if entries[i].IsDir() || filepath.Ext(entries[i].Name()) != ".json" {
+			continue
+		}
+
+		data, err := os.ReadFile(filepath.Join(s.environmentsDir, entries[i].Name()))
+		if err != nil {
+			continue
+		}
+
+		var env entity.Environment
+		if err := json.Unmarshal(data, &env); err != nil {
+			continue
+		}
+
+		envs = append(envs, env)
+	}
+
+	sort.Slice(envs, func(i, j int) bool {
+		return envs[i].Name < envs[j].Name
+	})
+
+	return envs, nil
+}
+
+func (s *JSONAdapter) DeleteEnvironment(ctx context.Context, id string) error {
+	path := filepath.Join(s.environmentsDir, id+".json")
+
+	if err := os.Remove(path); err != nil {
+		return &ErrDeleteEnvironment{err}
+	}
+
+	return nil
+}
+
+func (s *JSONAdapter) SaveConfig(ctx context.Context, cfg *valobj.Config) error {
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return &ErrSaveConfig{err}
+	}
+
+	if err := os.WriteFile(s.configFile, data, 0o644); err != nil {
+		return &ErrSaveConfig{err}
+	}
+
+	return nil
+}
+
+func (s *JSONAdapter) LoadConfig(ctx context.Context) (*valobj.Config, error) {
+	data, err := os.ReadFile(s.configFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+
+		return nil, &ErrLoadConfig{err}
+	}
+
+	var cfg valobj.Config
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return nil, &ErrLoadConfig{err}
+	}
+
+	return &cfg, nil
 }
 
 func (a *JSONAdapter) collectionFile(id string) string {

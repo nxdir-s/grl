@@ -42,3 +42,36 @@ type HistoryService interface {
 	Get(ctx context.Context) ([]entity.HistoryEntry, error)
 	Save(ctx context.Context, history []entity.HistoryEntry) error
 }
+
+type Environments interface {
+	Create(ctx context.Context, name string) (*entity.Environment, error)
+	List(ctx context.Context) ([]entity.Environment, error)
+	Get(ctx context.Context, id string) (*entity.Environment, error)
+	Save(ctx context.Context, env *entity.Environment) error
+	Delete(ctx context.Context, id string) error
+	GetActive(ctx context.Context) (*entity.Environment, error)
+	SetActive(ctx context.Context, id string) error
+	ActiveVars(ctx context.Context) map[string]string
+}
+
+type EnvironmentService interface {
+	List(ctx context.Context) ([]entity.Environment, error)
+	Get(ctx context.Context, id string) (*entity.Environment, error)
+	Save(ctx context.Context, env *entity.Environment) error
+	Delete(ctx context.Context, id string) error
+}
+
+type Configs interface {
+	Get(ctx context.Context) (*valobj.Config, error)
+	Save(ctx context.Context, cfg *valobj.Config) error
+}
+
+type ConfigService interface {
+	Get(ctx context.Context) (*valobj.Config, error)
+	Save(ctx context.Context, cfg *valobj.Config) error
+}
+
+type Substitutions interface {
+	Substitute(str string, vars map[string]string) string
+	SubstituteRequest(req *entity.Request, vars map[string]string) *entity.Request
+}
