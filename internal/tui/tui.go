@@ -2,8 +2,8 @@ package tui
 
 import (
 	"context"
-	"fmt"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -18,6 +18,7 @@ type KeyMap struct {
 	CycleMethod key.Binding
 	FocusNext   key.Binding
 	EnvModal    key.Binding
+	Copy        key.Binding
 	Quit        key.Binding
 }
 
@@ -39,6 +40,10 @@ func defaultKeyMap() KeyMap {
 			key.WithKeys("ctrl+e"),
 			key.WithHelp("ctrl+e", "environments"),
 		),
+		Copy: key.NewBinding(
+			key.WithKeys("ctrl+y"),
+			key.WithHelp("ctrl+y", "copy"),
+		),
 		Quit: key.NewBinding(
 			key.WithKeys("ctrl+c"),
 			key.WithHelp("ctrl+c", "quit"),
@@ -52,6 +57,7 @@ func (m KeyMap) ShortHelp() []key.Binding {
 		m.CycleMethod,
 		m.FocusNext,
 		m.EnvModal,
+		m.Copy,
 		m.Quit,
 	}
 }
@@ -63,6 +69,7 @@ func (m KeyMap) FullHelp() [][]key.Binding {
 			m.CycleMethod,
 			m.FocusNext,
 			m.EnvModal,
+			m.Copy,
 			m.Quit,
 		},
 	}
@@ -92,7 +99,7 @@ func WithContext(ctx context.Context) TUIOpts {
 
 type TUI struct {
 	ctx     context.Context
-	adapter ports.CLI
+	adapter ports.TUI
 
 	sidebar   components.Sidebar
 	method    components.MethodSelector
@@ -100,7 +107,7 @@ type TUI struct {
 	builder   components.RequestBuilder
 	response  components.ResponseViewer
 	statusBar components.StatusBar
-	envModal  components.Modal
+	envModal  components.EnvModal
 
 	focus  FocusPanel
 	keys   KeyMap
@@ -110,16 +117,17 @@ type TUI struct {
 	panelCount   int
 	sidebarWidth int
 
-	styles Styles
-	theme  Theme
+	styles *Styles
+	theme  *Theme
 
 	activeEnv *entity.Environment
 
-	loading bool
-	err     error
+	loading  bool
+	err      error
+	flashMsg string
 }
 
-func New(adapter ports.CLI, opts ...TUIOpts) *TUI {
+func New(adapter ports.TUI, opts ...TUIOpts) *TUI {
 	theme := NewTheme()
 
 	ui := &TUI{
@@ -129,9 +137,9 @@ func New(adapter ports.CLI, opts ...TUIOpts) *TUI {
 		method:       components.NewMethodSelector(),
 		urlBar:       components.NewURLBar(),
 		builder:      components.NewRequestBuilder(),
-		response:     components.NewResponseViewer(),
+		response:     components.NewResponseViewer(adapter),
 		statusBar:    components.NewStatusBar(),
-		envModal:     components.NewModal(),
+		envModal:     components.NewEnvModal(),
 		focus:        FocusURLBar,
 		keys:         defaultKeyMap(),
 		panelCount:   PanelCount,
@@ -197,6 +205,8 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			return t, t.sendRequest()
+		case key.Matches(msg, t.keys.Copy) && t.focus == FocusResponseViewer:
+			return t, t.copyResponse()
 		case key.Matches(msg, t.keys.FocusNext):
 			return t, t.cycleFocus(1)
 		}
@@ -241,6 +251,14 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return t, t.saveEnv(msg.Env)
 	case components.LoadRequestMsg:
 		t.loadRequest(msg.Request)
+		return t, nil
+	case components.FlashMsg:
+		t.flashMsg = msg.Text
+		return t, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+			return components.ClearFlashMsg{}
+		})
+	case components.ClearFlashMsg:
+		t.flashMsg = ""
 		return t, nil
 	case components.ErrorMsg:
 		t.err = msg.Err
@@ -287,7 +305,7 @@ func (t *TUI) View() tea.View {
 
 	switch {
 	case t.focus == FocusURLBar:
-		requestRow = t.focusIndicator("▸ ") + requestRow
+		requestRow = t.styles.focusIndicator.Render("▸ ") + requestRow
 	default:
 		requestRow = "  " + requestRow
 	}
@@ -302,20 +320,25 @@ func (t *TUI) View() tea.View {
 	)
 
 	// Pad columns to fill height
-	helpView := t.styles.statusBar.Render(t.statusBar.View(t.keys) + "  " + t.envBadge())
+	badge := t.envBadge()
+	if len(t.flashMsg) != 0 {
+		badge = t.styles.flash.Render(t.flashMsg) + "  " + badge
+	}
+
+	helpView := t.styles.statusBar.Render(t.statusBar.View(t.keys) + "  " + badge)
 	mainHeight := t.height - lipgloss.Height(helpView) - 1
 
-	responseCol := lipgloss.NewStyle().
+	responseCol := t.styles.base.
 		Width(responseWidth).
 		Height(mainHeight).
 		Render(responseSection)
 
-	requestCol := lipgloss.NewStyle().
+	requestCol := t.styles.base.
 		Width(requestWidth).
 		Height(mainHeight).
 		Render(requestContent)
 
-	colSeparator := lipgloss.NewStyle().
+	colSeparator := t.styles.base.
 		Foreground(t.theme.colorBorder).
 		Height(mainHeight).
 		Render(strings.Repeat("│\n", mainHeight))
@@ -329,6 +352,7 @@ func (t *TUI) View() tea.View {
 	if t.envModal.IsOpen() {
 		bodyWidth := t.width
 		bodyHeight := mainHeight
+
 		body = lipgloss.Place(
 			bodyWidth, bodyHeight,
 			lipgloss.Center, lipgloss.Center,
@@ -344,6 +368,25 @@ func (t *TUI) View() tea.View {
 	return v
 }
 
+func (t *TUI) copyResponse() tea.Cmd {
+	content := t.response.CopyContent()
+	if len(content) == 0 {
+		return nil
+	}
+
+	return func() tea.Msg {
+		if err := t.adapter.CopyToClipboard(content); err != nil {
+			return components.FlashMsg{
+				Text: "copy failed: " + err.Error(),
+			}
+		}
+
+		return components.FlashMsg{
+			Text: "copied",
+		}
+	}
+}
+
 func (t *TUI) envBadge() string {
 	name := "none"
 
@@ -351,9 +394,7 @@ func (t *TUI) envBadge() string {
 		name = t.activeEnv.Name
 	}
 
-	style := lipgloss.NewStyle().Foreground(t.theme.colorPrimary).Bold(true)
-
-	return style.Render("env: " + name)
+	return t.styles.envBadge.Render("env: " + name)
 }
 
 func (t *TUI) responseSection() string {
@@ -363,26 +404,23 @@ func (t *TUI) responseSection() string {
 	case t.loading:
 		responseSection = t.styles.loading.Render("  Sending request...")
 	case t.err != nil:
-		responseSection = t.styles.error.Render(fmt.Sprintf("  Error: %s", t.err.Error()))
+		responseSection = t.styles.error.Render("  Error: " + t.err.Error())
 	case t.response.HasResponse():
 		respView := t.response.View()
 
 		switch t.focus == FocusResponseViewer {
 		case true:
-			responseSection = t.focusIndicator("▸ ") + respView
+			responseSection = t.styles.focusIndicator.Render("▸ ") + respView
 		case false:
 			responseSection = "  " + respView
 		}
 	default:
-		responseSection = lipgloss.NewStyle().
-			Foreground(t.theme.colorMuted).
-			Render("  Press ctrl+s to send a request")
+		responseSection = t.styles.responseSection.Render("  Press ctrl+s to send a request")
 	}
 
 	return responseSection
 }
 
-// Request row: [METHOD] [URL input]
 func (t *TUI) requestRow() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Center,
@@ -397,7 +435,7 @@ func (t *TUI) requestBuilder() string {
 
 	switch {
 	case t.focus == FocusRequestBuilder:
-		builderView = t.focusIndicator("▸ ") + builderView
+		builderView = t.styles.focusIndicator.Render("▸ ") + builderView
 	default:
 		builderView = "  " + builderView
 	}
@@ -701,11 +739,4 @@ func (t *TUI) loadRequest(req *entity.Request) {
 	// Set URL — we need to re-create the URL bar with the value
 	t.urlBar.SetValue(req.URL)
 	// TODO: Load headers, params, body into the builder in future iteration
-}
-
-func (t *TUI) focusIndicator(s string) string {
-	return lipgloss.NewStyle().
-		Foreground(t.theme.colorPrimary).
-		Bold(true).
-		Render(s)
 }

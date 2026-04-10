@@ -40,6 +40,26 @@ func defaultSidebarKeys() SidebarKeyMap {
 	}
 }
 
+type SidebarStyles struct {
+	title    lipgloss.Style
+	header   lipgloss.Style
+	muted    lipgloss.Style
+	selected lipgloss.Style
+	normal   lipgloss.Style
+	border   lipgloss.Style
+}
+
+func NewSidebarStyles() *SidebarStyles {
+	return &SidebarStyles{
+		title:    lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4")),
+		header:   lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Bold(true),
+		muted:    lipgloss.NewStyle().Foreground(lipgloss.Color("#555555")),
+		selected: lipgloss.NewStyle().Foreground(lipgloss.Color("#FAFAFA")).Background(lipgloss.Color("#7D56F4")),
+		normal:   lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")),
+		border:   lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), false, true, false, false).BorderForeground(lipgloss.Color("#444444")),
+	}
+}
+
 type Entry struct {
 	label      string
 	section    Section
@@ -55,27 +75,15 @@ type Sidebar struct {
 	width   int
 	height  int
 
-	titleStyle    lipgloss.Style
-	headerStyle   lipgloss.Style
-	selectedStyle lipgloss.Style
-	normalStyle   lipgloss.Style
-	mutedStyle    lipgloss.Style
-	borderStyle   lipgloss.Style
-
 	keys SidebarKeyMap
+
+	styles *SidebarStyles
 }
 
 func NewSidebar() Sidebar {
 	return Sidebar{
-		keys: defaultSidebarKeys(),
-		titleStyle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#7D56F4")),
-		headerStyle: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#626262")).
-			Bold(true),
-		mutedStyle: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#555555")),
+		keys:   defaultSidebarKeys(),
+		styles: NewSidebarStyles(),
 	}
 }
 
@@ -237,30 +245,25 @@ func (c Sidebar) View() string {
 		return ""
 	}
 
-	c.setSelectedStyle()
-	c.setNormalStyle()
-
 	var lines []string
 	visible := c.height - 1
 	end := min(c.offset+visible, len(c.entries))
 
 	for i := c.offset; i < end; i++ {
-		// Section headers
 		if strings.HasPrefix(c.entries[i].label, "─") {
-			lines = append(lines, c.headerStyle.Render(c.entries[i].label))
+			lines = append(lines, c.styles.header.Render(c.entries[i].label))
 			continue
 		}
 
-		// Muted entries like "(empty)"
 		if c.entries[i].request == nil && c.entries[i].collection == nil {
-			lines = append(lines, c.mutedStyle.Render(c.entries[i].label))
+			lines = append(lines, c.styles.muted.Render(c.entries[i].label))
 			continue
 		}
 
 		if c.focused && i == c.cursor {
-			lines = append(lines, c.selectedStyle.Render(c.entries[i].label))
+			lines = append(lines, c.styles.selected.Width(c.width-2).Render(c.entries[i].label))
 		} else {
-			lines = append(lines, c.normalStyle.Render(c.entries[i].label))
+			lines = append(lines, c.styles.normal.Width(c.width-2).Render(c.entries[i].label))
 		}
 	}
 
@@ -271,30 +274,7 @@ func (c Sidebar) View() string {
 
 	content := strings.Join(lines, "\n")
 
-	c.setBorderStyle()
-
-	return c.borderStyle.Render(content)
-}
-
-func (c *Sidebar) setSelectedStyle() {
-	c.selectedStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FAFAFA")).
-		Background(lipgloss.Color("#7D56F4")).
-		Width(c.width - 2)
-}
-
-func (c *Sidebar) setNormalStyle() {
-	c.normalStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#AAAAAA")).
-		Width(c.width - 2)
-}
-
-func (c *Sidebar) setBorderStyle() {
-	c.borderStyle = lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder(), false, true, false, false).
-		BorderForeground(lipgloss.Color("#444444")).
-		Width(c.width).
-		Height(c.height)
+	return c.styles.border.Width(c.width).Height(c.height).Render(content)
 }
 
 // LoadRequestMsg is sent when the user selects a request from the sidebar.

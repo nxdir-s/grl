@@ -41,8 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logPath := filepath.Join(dataDir, "out.log")
-	logFile, err := os.Create(logPath)
+	logFile, err := os.Create(filepath.Join(dataDir, "out.log"))
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "failed to create log file: %s\n", err.Error())
 		os.Exit(1)
@@ -66,6 +65,10 @@ func main() {
 	var configs ports.Configs
 	var environments ports.Environments
 	var substitutions ports.Substitutions
+	var formatter ports.Formatter
+	var clipboard ports.Clipboard
+
+	var adapter ports.TUI
 
 	httpCfg := &secondary.HttpConfig{
 		TlsConfig: &tls.Config{
@@ -82,6 +85,8 @@ func main() {
 	environmentService = service.NewEnvironmentService(storage)
 	configService = service.NewConfigService(storage)
 
+	formatter = domain.NewFormatter()
+	clipboard = domain.NewClipboard()
 	configs = domain.NewConfigs(configService)
 	environments = domain.NewEnvironments(environmentService, configs)
 	substitutions = domain.NewSubstitutions()
@@ -89,16 +94,16 @@ func main() {
 	history = domain.NewHistory(historyService)
 	requests = domain.NewRequests(requestService, environments, substitutions)
 
-	var adapter ports.CLI
-
-	adapter = primary.NewCLIAdapter(logger,
+	adapter = primary.NewTUIAdapter(logger,
 		primary.WithRequests(requests),
 		primary.WithCollections(collections),
 		primary.WithHistory(history),
 		primary.WithEnvironments(environments),
+		primary.WithFormatter(formatter),
+		primary.WithClipboard(clipboard),
 	)
 
-	app := tui.New(adapter)
+	app := tui.New(adapter, tui.WithContext(ctx))
 
 	if err := app.Run(ctx); err != nil {
 		logger.Error("failed to run", slog.String("err", err.Error()))

@@ -231,12 +231,12 @@ func (a *HttpAdapter) Send(ctx context.Context, req *entity.Request) (*entity.Re
 
 	timing.Total = time.Since(start)
 
-	headers := make([]valobj.Header, 0)
+	headers := make([]valobj.Header, 0, len(httpResp.Header))
 	for key, values := range httpResp.Header {
-		for _, val := range values {
+		for i := range values {
 			headers = append(headers, valobj.Header{
 				Key:     key,
-				Value:   val,
+				Value:   values[i],
 				Enabled: true,
 			})
 		}

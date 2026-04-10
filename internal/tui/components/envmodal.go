@@ -12,22 +12,22 @@ import (
 	"github.com/nxdir-s/grl/internal/core/entity"
 )
 
-type Mode int
+type EnvMode int
 
 const (
-	ModeList Mode = iota
-	ModeCreate
-	ModeEdit
+	EnvModeList EnvMode = iota
+	EnvModeCreate
+	EnvModeEdit
 )
 
-type EditField int
+type EnvEditField int
 
 const (
-	EditKey EditField = iota
-	EditValue
+	EnvEditKey EnvEditField = iota
+	EnvEditValue
 )
 
-type ModalKeyMap struct {
+type EnvModalKeyMap struct {
 	Up     key.Binding
 	Down   key.Binding
 	Select key.Binding
@@ -40,8 +40,8 @@ type ModalKeyMap struct {
 	Field  key.Binding
 }
 
-func defaultKeys() ModalKeyMap {
-	return ModalKeyMap{
+func defaultEnvModalKeys() EnvModalKeyMap {
+	return EnvModalKeyMap{
 		Up:     key.NewBinding(key.WithKeys("up", "ctrl+p"), key.WithHelp("↑", "up")),
 		Down:   key.NewBinding(key.WithKeys("down", "ctrl+n"), key.WithHelp("↓", "down")),
 		Select: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "activate")),
@@ -52,6 +52,46 @@ func defaultKeys() ModalKeyMap {
 		Save:   key.NewBinding(key.WithKeys("ctrl+s"), key.WithHelp("ctrl+s", "save")),
 		Add:    key.NewBinding(key.WithKeys("ctrl+o"), key.WithHelp("ctrl+o", "add var")),
 		Field:  key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next field")),
+	}
+}
+
+type EnvModalStyles struct {
+	cmdsHelp lipgloss.Style
+	sel      lipgloss.Style
+	muted    lipgloss.Style
+	active   lipgloss.Style
+	key      lipgloss.Style
+	noVars   lipgloss.Style
+	noEnv    lipgloss.Style
+	border   lipgloss.Style
+	title    lipgloss.Style
+}
+
+func NewEnvModalStyles() *EnvModalStyles {
+	return &EnvModalStyles{
+		cmdsHelp: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#626262")),
+		sel: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Background(lipgloss.Color("#7D56F4")),
+		muted: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#AAAAAA")),
+		active: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#73D216")).
+			Bold(true),
+		key: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#F5A623")),
+		noVars: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#626262")),
+		noEnv: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#626262")),
+		border: lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#7D56F4")).
+			Padding(1, 2),
+		title: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#7D56F4")),
 	}
 }
 
@@ -71,8 +111,8 @@ type SaveEnvMsg struct {
 	Env *entity.Environment
 }
 
-type Modal struct {
-	mode     Mode
+type EnvModal struct {
+	mode     EnvMode
 	envs     []entity.Environment
 	activeID string
 	cursor   int
@@ -86,15 +126,17 @@ type Modal struct {
 	editing     *entity.Environment
 	editKeys    []string
 	editCursor  int
-	editField   EditField
+	editField   EnvEditField
 	keyInput    textinput.Model
 	valueInput  textinput.Model
 	editingPair bool
 
-	keys ModalKeyMap
+	keys EnvModalKeyMap
+
+	styles *EnvModalStyles
 }
 
-func NewModal() Modal {
+func NewEnvModal() EnvModal {
 	nameInput := textinput.New()
 	nameInput.Placeholder = "environment name"
 	nameInput.Prompt = ""
@@ -110,28 +152,29 @@ func NewModal() Modal {
 	valInput.Prompt = ""
 	valInput.CharLimit = 1024
 
-	return Modal{
-		mode:       ModeList,
+	return EnvModal{
+		mode:       EnvModeList,
 		nameInput:  nameInput,
 		keyInput:   keyInput,
 		valueInput: valInput,
-		keys:       defaultKeys(),
+		keys:       defaultEnvModalKeys(),
+		styles:     NewEnvModalStyles(),
 	}
 }
 
-func (m *Modal) Open() tea.Cmd {
+func (m *EnvModal) Open() tea.Cmd {
 	m.open = true
 	m.focused = true
-	m.mode = ModeList
+	m.mode = EnvModeList
 	m.cursor = 0
 
 	return nil
 }
 
-func (m *Modal) Close() {
+func (m *EnvModal) Close() {
 	m.open = false
 	m.focused = false
-	m.mode = ModeList
+	m.mode = EnvModeList
 
 	m.nameInput.Blur()
 	m.nameInput.SetValue("")
@@ -143,16 +186,16 @@ func (m *Modal) Close() {
 	m.editingPair = false
 }
 
-func (m Modal) IsOpen() bool {
+func (m EnvModal) IsOpen() bool {
 	return m.open
 }
 
-func (m *Modal) SetSize(w, h int) {
+func (m *EnvModal) SetSize(w, h int) {
 	m.width = w
 	m.height = h
 }
 
-func (m *Modal) SetData(envs []entity.Environment, activeID string) {
+func (m *EnvModal) SetData(envs []entity.Environment, activeID string) {
 	m.envs = envs
 	m.activeID = activeID
 	if m.cursor >= len(envs) {
@@ -160,24 +203,24 @@ func (m *Modal) SetData(envs []entity.Environment, activeID string) {
 	}
 }
 
-func (m Modal) Update(msg tea.Msg) (Modal, tea.Cmd) {
+func (m EnvModal) Update(msg tea.Msg) (EnvModal, tea.Cmd) {
 	if !m.open {
 		return m, nil
 	}
 
 	switch m.mode {
-	case ModeList:
+	case EnvModeList:
 		return m.updateList(msg)
-	case ModeCreate:
+	case EnvModeCreate:
 		return m.updateCreate(msg)
-	case ModeEdit:
+	case EnvModeEdit:
 		return m.updateEdit(msg)
 	}
 
 	return m, nil
 }
 
-func (m Modal) updateList(msg tea.Msg) (Modal, tea.Cmd) {
+func (m EnvModal) updateList(msg tea.Msg) (EnvModal, tea.Cmd) {
 	km, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return m, nil
@@ -217,7 +260,7 @@ func (m Modal) updateList(msg tea.Msg) (Modal, tea.Cmd) {
 			}
 		}
 	case key.Matches(km, m.keys.New):
-		m.mode = ModeCreate
+		m.mode = EnvModeCreate
 		m.nameInput.SetValue("")
 
 		return m, m.nameInput.Focus()
@@ -241,7 +284,7 @@ func (m Modal) updateList(msg tea.Msg) (Modal, tea.Cmd) {
 		m.refreshEditKeys()
 		m.editCursor = 0
 		m.editingPair = false
-		m.mode = ModeEdit
+		m.mode = EnvModeEdit
 
 		return m, nil
 	case key.Matches(km, m.keys.Delete):
@@ -261,7 +304,7 @@ func (m Modal) updateList(msg tea.Msg) (Modal, tea.Cmd) {
 	return m, nil
 }
 
-func (m *Modal) refreshEditKeys() {
+func (m *EnvModal) refreshEditKeys() {
 	m.editKeys = make([]string, 0, len(m.editing.Variables))
 
 	for k := range m.editing.Variables {
@@ -275,13 +318,13 @@ func (m *Modal) refreshEditKeys() {
 	}
 }
 
-func (m Modal) updateCreate(msg tea.Msg) (Modal, tea.Cmd) {
+func (m EnvModal) updateCreate(msg tea.Msg) (EnvModal, tea.Cmd) {
 	km, ok := msg.(tea.KeyPressMsg)
 	if ok {
 		switch {
 		case key.Matches(km, m.keys.Close):
 			m.nameInput.Blur()
-			m.mode = ModeList
+			m.mode = EnvModeList
 
 			return m, nil
 		case km.String() == "enter":
@@ -293,7 +336,7 @@ func (m Modal) updateCreate(msg tea.Msg) (Modal, tea.Cmd) {
 
 			m.nameInput.Blur()
 			m.nameInput.SetValue("")
-			m.mode = ModeList
+			m.mode = EnvModeList
 
 			return m, func() tea.Msg {
 				return CreateEnvMsg{
@@ -309,13 +352,12 @@ func (m Modal) updateCreate(msg tea.Msg) (Modal, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Modal) updateEdit(msg tea.Msg) (Modal, tea.Cmd) {
+func (m EnvModal) updateEdit(msg tea.Msg) (EnvModal, tea.Cmd) {
 	km, ok := msg.(tea.KeyPressMsg)
 	if !ok {
 		return m.routeEditInput(msg)
 	}
 
-	// If editing a pair, route keys to inputs unless finalizing
 	if m.editingPair {
 		switch km.String() {
 		case "esc":
@@ -325,15 +367,15 @@ func (m Modal) updateEdit(msg tea.Msg) (Modal, tea.Cmd) {
 
 			return m, nil
 		case "tab":
-			if m.editField == EditKey {
+			if m.editField == EnvEditKey {
 				m.keyInput.Blur()
-				m.editField = EditValue
+				m.editField = EnvEditValue
 
 				return m, m.valueInput.Focus()
 			}
 
 			m.valueInput.Blur()
-			m.editField = EditKey
+			m.editField = EnvEditKey
 
 			return m, m.keyInput.Focus()
 		case "enter":
@@ -360,13 +402,13 @@ func (m Modal) updateEdit(msg tea.Msg) (Modal, tea.Cmd) {
 	switch {
 	case key.Matches(km, m.keys.Close):
 		m.editing = nil
-		m.mode = ModeList
+		m.mode = EnvModeList
 
 		return m, nil
 	case key.Matches(km, m.keys.Save):
 		env := m.editing
 		m.editing = nil
-		m.mode = ModeList
+		m.mode = EnvModeList
 
 		return m, func() tea.Msg {
 			return SaveEnvMsg{
@@ -387,7 +429,7 @@ func (m Modal) updateEdit(msg tea.Msg) (Modal, tea.Cmd) {
 		return m, nil
 	case key.Matches(km, m.keys.Add):
 		m.editingPair = true
-		m.editField = EditKey
+		m.editField = EnvEditKey
 		m.keyInput.SetValue("")
 		m.valueInput.SetValue("")
 
@@ -399,7 +441,7 @@ func (m Modal) updateEdit(msg tea.Msg) (Modal, tea.Cmd) {
 
 		k := m.editKeys[m.editCursor]
 		m.editingPair = true
-		m.editField = EditValue
+		m.editField = EnvEditValue
 		m.keyInput.SetValue(k)
 		m.valueInput.SetValue(m.editing.Variables[k])
 
@@ -423,7 +465,7 @@ func (m Modal) updateEdit(msg tea.Msg) (Modal, tea.Cmd) {
 	return m, nil
 }
 
-func (m Modal) routeEditInput(msg tea.Msg) (Modal, tea.Cmd) {
+func (m EnvModal) routeEditInput(msg tea.Msg) (EnvModal, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch {
@@ -436,7 +478,7 @@ func (m Modal) routeEditInput(msg tea.Msg) (Modal, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Modal) View() string {
+func (m EnvModal) View() string {
 	if !m.open {
 		return ""
 	}
@@ -451,61 +493,42 @@ func (m Modal) View() string {
 		modalW = 80
 	}
 
-	border := m.borderStyle(modalW)
-	title := m.titleStyle()
-
 	var content string
 	switch m.mode {
-	case ModeList:
-		content = m.viewList(title)
-	case ModeCreate:
-		content = m.viewCreate(title)
-	case ModeEdit:
-		content = m.viewEdit(title)
+	case EnvModeList:
+		content = m.viewList()
+	case EnvModeCreate:
+		content = m.viewCreate()
+	case EnvModeEdit:
+		content = m.viewEdit()
 	}
 
-	return border.Render(content)
+	return m.styles.border.Width(modalW).Render(content)
 }
 
-func (m Modal) borderStyle(width int) lipgloss.Style {
-	return lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#7D56F4")).
-		Padding(1, 2).
-		Width(width)
-}
-
-func (m Modal) titleStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4"))
-}
-
-func (m Modal) viewList(title lipgloss.Style) string {
+func (m EnvModal) viewList() string {
 	var b strings.Builder
-	b.WriteString(title.Render("Environments"))
+	b.WriteString(m.styles.title.Render("Environments"))
 	b.WriteString("\n\n")
 
 	switch len(m.envs) == 0 {
 	case true:
-		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render("(no environments)"))
+		b.WriteString(m.styles.noEnv.Render("(no environments)"))
 	default:
-		sel := m.selStyle()
-		muted := m.mutedStyle()
-		active := m.activeStyle()
-
 		for i := range m.envs {
 			marker := "  "
 
 			if m.envs[i].ID == m.activeID {
-				marker = active.Render("● ")
+				marker = m.styles.active.Render("● ")
 			}
 
 			line := fmt.Sprintf("%s%s (%d vars)", marker, m.envs[i].Name, len(m.envs[i].Variables))
 
 			switch i == m.cursor {
 			case true:
-				b.WriteString(sel.Render(line))
+				b.WriteString(m.styles.sel.Render(line))
 			default:
-				b.WriteString(muted.Render(line))
+				b.WriteString(m.styles.muted.Render(line))
 			}
 
 			b.WriteString("\n")
@@ -513,79 +536,51 @@ func (m Modal) viewList(title lipgloss.Style) string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.keyCmdsHelp())
+	b.WriteString(m.styles.cmdsHelp.Render(
+		"enter: activate/clear · ctrl+o: new · ctrl+y: edit · ctrl+g: delete · esc: close",
+	))
 
 	return b.String()
 }
 
-func (m Modal) keyCmdsHelp() string {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render(
-		"enter: activate/clear · ctrl+o: new · ctrl+y: edit · ctrl+g: delete · esc: close",
-	)
-}
-
-func (m Modal) selStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#FAFAFA")).Background(lipgloss.Color("#7D56F4"))
-}
-
-func (m Modal) mutedStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA"))
-}
-
-func (m Modal) activeStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#73D216")).Bold(true)
-}
-
-func (m Modal) keyStyle() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#F5A623"))
-}
-
-func (m Modal) viewCreate(title lipgloss.Style) string {
+func (m EnvModal) viewCreate() string {
 	var b strings.Builder
 
-	b.WriteString(title.Render("New Environment"))
+	b.WriteString(m.styles.title.Render("New Environment"))
 	b.WriteString("\n\n")
 	b.WriteString("Name: ")
 	b.WriteString(m.nameInput.View())
 	b.WriteString("\n\n")
-	b.WriteString(m.createEnvCmdsHelp())
+	b.WriteString(m.styles.cmdsHelp.Render(
+		"enter: create · esc: cancel",
+	))
 
 	return b.String()
 }
 
-func (m Modal) createEnvCmdsHelp() string {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render(
-		"enter: create · esc: cancel",
-	)
-}
-
-func (m Modal) viewEdit(title lipgloss.Style) string {
+func (m EnvModal) viewEdit() string {
 	var b strings.Builder
 
-	b.WriteString(title.Render("Edit " + m.editing.Name))
+	b.WriteString(m.styles.title.Render("Edit " + m.editing.Name))
 	b.WriteString("\n\n")
 
 	switch len(m.editKeys) == 0 {
 	case true:
-		b.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render("(no variables)"))
+		b.WriteString(m.styles.noVars.Render("(no variables)"))
 	default:
-		sel := m.selStyle()
-		muted := m.mutedStyle()
-		keyStyle := m.keyStyle()
-
 		for i := range m.editKeys {
 			v := m.editing.Variables[m.editKeys[i]]
 			if len(v) > 30 {
 				v = v[:27] + "..."
 			}
 
-			line := fmt.Sprintf("%s = %s", keyStyle.Render(m.editKeys[i]), v)
+			line := fmt.Sprintf("%s = %s", m.styles.key.Render(m.editKeys[i]), v)
 
 			switch i == m.editCursor && !m.editingPair {
 			case true:
-				b.WriteString(sel.Render(fmt.Sprintf("%-40s", line)))
+				b.WriteString(m.styles.sel.Render(fmt.Sprintf("%-40s", line)))
 			default:
-				b.WriteString(muted.Render(line))
+				b.WriteString(m.styles.muted.Render(line))
 			}
 
 			b.WriteString("\n")
@@ -597,23 +592,15 @@ func (m Modal) viewEdit(title lipgloss.Style) string {
 		b.WriteString("\n")
 		b.WriteString("Key:   " + m.keyInput.View() + "\n")
 		b.WriteString("Value: " + m.valueInput.View() + "\n")
-		b.WriteString(m.editPairCmdsHelp())
+		b.WriteString(m.styles.cmdsHelp.Render(
+			"tab: switch field · enter: confirm · esc: cancel",
+		))
 	default:
 		b.WriteString("\n")
-		b.WriteString(m.editCmdsHelp())
+		b.WriteString(m.styles.cmdsHelp.Render(
+			"ctrl+o: add · ctrl+y: edit · ctrl+g: delete · ctrl+s: save · esc: cancel",
+		))
 	}
 
 	return b.String()
-}
-
-func (m Modal) editPairCmdsHelp() string {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render(
-		"tab: switch field · enter: confirm · esc: cancel",
-	)
-}
-
-func (m Modal) editCmdsHelp() string {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render(
-		"ctrl+o: add · ctrl+y: edit · ctrl+g: delete · ctrl+s: save · esc: cancel",
-	)
 }

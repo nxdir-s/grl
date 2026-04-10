@@ -11,27 +11,40 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/nxdir-s/grl/internal/core/entity"
 	"github.com/nxdir-s/grl/internal/core/valobj"
+	"github.com/nxdir-s/grl/internal/ports"
 )
+
+type ResponseHeaderPaneStyles struct {
+	keys   lipgloss.Style
+	values lipgloss.Style
+}
+
+func NewResponseHeaderPaneStyles() *ResponseHeaderPaneStyles {
+	return &ResponseHeaderPaneStyles{
+		keys:   lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4")),
+		values: lipgloss.NewStyle().Foreground(lipgloss.Color("#FAFAFA")),
+	}
+}
 
 type ResponseHeaderPane struct {
 	viewport viewport.Model
+	styles   *ResponseHeaderPaneStyles
 	ready    bool
-	keyStyle lipgloss.Style
-	valStyle lipgloss.Style
+	raw      string
 }
 
 func NewResponseHeaderPane() ResponseHeaderPane {
 	return ResponseHeaderPane{
-		keyStyle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#7D56F4")),
-		valStyle: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FAFAFA")),
+		styles: NewResponseHeaderPaneStyles(),
 	}
 }
 
 func (c *ResponseHeaderPane) SetSize(width, height int) {
-	if !c.ready {
+	switch c.ready {
+	case true:
+		c.viewport.SetWidth(width)
+		c.viewport.SetHeight(height)
+	default:
 		c.viewport = viewport.New(
 			viewport.WithWidth(width),
 			viewport.WithHeight(height),
@@ -39,9 +52,6 @@ func (c *ResponseHeaderPane) SetSize(width, height int) {
 
 		c.viewport.MouseWheelEnabled = true
 		c.ready = true
-	} else {
-		c.viewport.SetWidth(width)
-		c.viewport.SetHeight(height)
 	}
 }
 
@@ -64,17 +74,28 @@ func (c *ResponseHeaderPane) SetHeaders(headers []valobj.Header) {
 	})
 
 	var sb strings.Builder
+	var rawSb strings.Builder
+
 	for i := range sorted {
 		sb.WriteString(fmt.Sprintf("  %s: %s\n",
-			c.keyStyle.Render(sorted[i].Key),
-			c.valStyle.Render(sorted[i].Value),
+			c.styles.keys.Render(sorted[i].Key),
+			c.styles.values.Render(sorted[i].Value),
 		))
+
+		rawSb.WriteString(fmt.Sprintf("%s: %s\n", sorted[i].Key, sorted[i].Value))
 	}
+
+	c.raw = rawSb.String()
 
 	c.viewport.SetContent(sb.String())
 }
 
+func (c ResponseHeaderPane) Raw() string {
+	return c.raw
+}
+
 func (c *ResponseHeaderPane) Clear() {
+	c.raw = ""
 	if c.ready {
 		c.viewport.SetContent("")
 	}
@@ -100,16 +121,24 @@ func (c ResponseHeaderPane) View() string {
 }
 
 type ResponseBodyPane struct {
+	adapter  ports.TUI
 	viewport viewport.Model
 	ready    bool
+	raw      string
 }
 
-func NewResponseBodyPane() ResponseBodyPane {
-	return ResponseBodyPane{}
+func NewResponseBodyPane(adapter ports.TUI) ResponseBodyPane {
+	return ResponseBodyPane{
+		adapter: adapter,
+	}
 }
 
 func (c *ResponseBodyPane) SetSize(width, height int) {
-	if !c.ready {
+	switch c.ready {
+	case true:
+		c.viewport.SetWidth(width)
+		c.viewport.SetHeight(height)
+	default:
 		c.viewport = viewport.New(
 			viewport.WithWidth(width),
 			viewport.WithHeight(height),
@@ -117,9 +146,6 @@ func (c *ResponseBodyPane) SetSize(width, height int) {
 
 		c.viewport.MouseWheelEnabled = true
 		c.ready = true
-	} else {
-		c.viewport.SetWidth(width)
-		c.viewport.SetHeight(height)
 	}
 }
 
@@ -128,10 +154,17 @@ func (c *ResponseBodyPane) SetContent(resp *entity.Response) {
 		return
 	}
 
-	c.viewport.SetContent(resp.FormatBody())
+	c.raw = resp.FormatBody()
+
+	c.viewport.SetContent(c.adapter.ColorizeJSON(c.raw))
+}
+
+func (c ResponseBodyPane) Raw() string {
+	return c.raw
 }
 
 func (c *ResponseBodyPane) Clear() {
+	c.raw = ""
 	if c.ready {
 		c.viewport.SetContent("")
 	}
@@ -156,16 +189,34 @@ func (c ResponseBodyPane) View() string {
 	return c.viewport.View()
 }
 
+type ResponseStatusLineStyles struct {
+	muted     lipgloss.Style
+	label     lipgloss.Style
+	status2XX lipgloss.Style
+	status3XX lipgloss.Style
+	status4XX lipgloss.Style
+	status5XX lipgloss.Style
+}
+
+func NewResponseStatusLineStyles() *ResponseStatusLineStyles {
+	return &ResponseStatusLineStyles{
+		muted:     lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")),
+		label:     lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")),
+		status2XX: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#73D216")),
+		status3XX: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#F5A623")),
+		status4XX: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FF6F61")),
+		status5XX: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#FF4444")),
+	}
+}
+
 type ResponseStatusLine struct {
-	response   *entity.Response
-	mutedStyle lipgloss.Style
-	labelStyle lipgloss.Style
+	response *entity.Response
+	styles   *ResponseStatusLineStyles
 }
 
 func NewResponseStatusLine() ResponseStatusLine {
 	return ResponseStatusLine{
-		mutedStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")),
-		labelStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("#888888")),
+		styles: NewResponseStatusLineStyles(),
 	}
 }
 
@@ -182,12 +233,12 @@ func (c ResponseStatusLine) View() string {
 		return ""
 	}
 
-	status := c.styleForCode().Render(c.response.Status)
-	totalTiming := c.mutedStyle.Render(fmt.Sprintf("%dms", c.response.Timing.Total.Milliseconds()))
-	size := c.mutedStyle.Render(formatSize(len(c.response.Body.Bytes())))
+	status := c.renderStatus()
+	totalTiming := c.styles.muted.Render(fmt.Sprintf("%dms", c.response.Timing.Total.Milliseconds()))
+	size := c.styles.muted.Render(formatSize(len(c.response.Body.Bytes())))
 
 	summary := fmt.Sprintf("%s  ·  %s  ·  %s", status, totalTiming, size)
-	breakdown := formatTimingBreakdown(c.response.Timing, c.labelStyle, c.mutedStyle)
+	breakdown := c.formatTimingBreakdown(c.response.Timing)
 
 	if len(breakdown) != 0 {
 		summary += "\n" + breakdown
@@ -196,49 +247,47 @@ func (c ResponseStatusLine) View() string {
 	return summary
 }
 
-func (c ResponseStatusLine) styleForCode() lipgloss.Style {
-	style := lipgloss.NewStyle().Bold(true)
-
+func (c ResponseStatusLine) renderStatus() string {
 	switch {
 	case c.response.StatusCode >= 200 && c.response.StatusCode < 300:
-		return style.Foreground(lipgloss.Color("#73D216"))
+		return c.styles.status2XX.Render(c.response.Status)
 	case c.response.StatusCode >= 300 && c.response.StatusCode < 400:
-		return style.Foreground(lipgloss.Color("#F5A623"))
+		return c.styles.status3XX.Render(c.response.Status)
 	case c.response.StatusCode >= 400 && c.response.StatusCode < 500:
-		return style.Foreground(lipgloss.Color("#FF6F61"))
+		return c.styles.status4XX.Render(c.response.Status)
 	default:
-		return style.Foreground(lipgloss.Color("#FF4444"))
+		return c.styles.status5XX.Render(c.response.Status)
 	}
 }
 
-func formatTimingBreakdown(t valobj.Timing, labelStyle lipgloss.Style, valStyle lipgloss.Style) string {
+func (c ResponseStatusLine) formatTimingBreakdown(t valobj.Timing) string {
 	var parts []string
 
 	if t.DNSLookup > 0 {
 		parts = append(parts, fmt.Sprintf("%s %s",
-			labelStyle.Render("DNS:"),
-			valStyle.Render(fmt.Sprintf("%dms", t.DNSLookup.Milliseconds())),
+			c.styles.label.Render("DNS:"),
+			c.styles.muted.Render(fmt.Sprintf("%dms", t.DNSLookup.Milliseconds())),
 		))
 	}
 
 	if t.TCPConnect > 0 {
 		parts = append(parts, fmt.Sprintf("%s %s",
-			labelStyle.Render("TCP:"),
-			valStyle.Render(fmt.Sprintf("%dms", t.TCPConnect.Milliseconds())),
+			c.styles.label.Render("TCP:"),
+			c.styles.muted.Render(fmt.Sprintf("%dms", t.TCPConnect.Milliseconds())),
 		))
 	}
 
 	if t.TLSHandshake > 0 {
 		parts = append(parts, fmt.Sprintf("%s %s",
-			labelStyle.Render("TLS:"),
-			valStyle.Render(fmt.Sprintf("%dms", t.TLSHandshake.Milliseconds())),
+			c.styles.label.Render("TLS:"),
+			c.styles.muted.Render(fmt.Sprintf("%dms", t.TLSHandshake.Milliseconds())),
 		))
 	}
 
 	if t.TTFB > 0 {
 		parts = append(parts, fmt.Sprintf("%s %s",
-			labelStyle.Render("TTFB:"),
-			valStyle.Render(fmt.Sprintf("%dms", t.TTFB.Milliseconds())),
+			c.styles.label.Render("TTFB:"),
+			c.styles.muted.Render(fmt.Sprintf("%dms", t.TTFB.Milliseconds())),
 		))
 	}
 
@@ -292,11 +341,11 @@ type ResponseViewer struct {
 	keys ResponseViewerKeyMap
 }
 
-func NewResponseViewer() ResponseViewer {
+func NewResponseViewer(adapter ports.TUI) ResponseViewer {
 	return ResponseViewer{
 		statusLine: NewResponseStatusLine(),
 		tabs:       NewResponseTabs(),
-		bodyPane:   NewResponseBodyPane(),
+		bodyPane:   NewResponseBodyPane(adapter),
 		headerPane: NewResponseHeaderPane(),
 		keys:       defaultResponseViewerKeys(),
 	}
@@ -340,6 +389,21 @@ func (c *ResponseViewer) Clear() {
 
 func (c ResponseViewer) HasResponse() bool {
 	return c.hasResp
+}
+
+func (c ResponseViewer) CopyContent() string {
+	if !c.hasResp {
+		return ""
+	}
+
+	switch c.tabs.Active() {
+	case ResponseTabHeaders:
+		return c.headerPane.Raw()
+	case ResponseTabBody:
+		return c.bodyPane.Raw()
+	default:
+		return ""
+	}
 }
 
 func (c ResponseViewer) Update(msg tea.Msg) (ResponseViewer, tea.Cmd) {

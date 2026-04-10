@@ -70,8 +70,8 @@ func (d *Collections) RemoveRequest(ctx context.Context, collectionID string, re
 		return err
 	}
 
-	for i, r := range collection.Requests {
-		if r.ID == requestID {
+	for i := range collection.Requests {
+		if collection.Requests[i].ID == requestID {
 			collection.Requests = append(collection.Requests[:i], collection.Requests[i+1:]...)
 
 			return d.service.Save(ctx, collection)

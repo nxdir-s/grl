@@ -48,6 +48,29 @@ func defaultKVEditorKeys() KVEditorKeyMap {
 	}
 }
 
+type KVEditorStyles struct {
+	noEntries lipgloss.Style
+	header    lipgloss.Style
+	row       lipgloss.Style
+	disabled  lipgloss.Style
+	toggle    lipgloss.Style
+}
+
+func NewKVEditorStyles() *KVEditorStyles {
+	return &KVEditorStyles{
+		noEntries: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#626262")),
+		header: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#626262")),
+		row: lipgloss.NewStyle(),
+		disabled: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#444444")),
+		toggle: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#626262")),
+	}
+}
+
 type KVEditor struct {
 	rows           []KVRow
 	cursor         int
@@ -58,6 +81,8 @@ type KVEditor struct {
 	width          int
 
 	keys KVEditorKeyMap
+
+	styles *KVEditorStyles
 }
 
 func NewKVEditor(keyPlaceholder, valPlaceholder string) KVEditor {
@@ -65,6 +90,7 @@ func NewKVEditor(keyPlaceholder, valPlaceholder string) KVEditor {
 		keyPlaceholder: keyPlaceholder,
 		valPlaceholder: valPlaceholder,
 		keys:           defaultKVEditorKeys(),
+		styles:         NewKVEditorStyles(),
 	}
 
 	editor.addRow()
@@ -207,9 +233,7 @@ func (c KVEditor) Update(msg tea.Msg) (KVEditor, tea.Cmd) {
 
 func (c KVEditor) View() string {
 	if len(c.rows) == 0 {
-		return lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#626262")).
-			Render("  No entries. Press ctrl+n to add.")
+		return c.styles.noEntries.Render("  No entries. Press ctrl+n to add.")
 	}
 
 	colWidth := c.width / 2
@@ -217,21 +241,15 @@ func (c KVEditor) View() string {
 		colWidth = 10
 	}
 
-	headerStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#626262")).
-		Width(colWidth)
+	headerStyle := c.styles.header.Width(colWidth)
 
 	header := fmt.Sprintf("  %s%s",
 		headerStyle.Render("Key"),
 		headerStyle.Render("Value"),
 	)
 
-	rowStyle := lipgloss.NewStyle().Width(colWidth)
-
-	disabledStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#444444")).
-		Width(colWidth)
+	rowStyle := c.styles.row.Width(colWidth)
+	disabledStyle := c.styles.disabled.Width(colWidth)
 
 	cursorStr := "▸ "
 	noCursor := "  "
@@ -253,11 +271,9 @@ func (c KVEditor) View() string {
 			toggleMark = "○"
 		}
 
-		toggleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#626262"))
-
 		row := fmt.Sprintf("%s%s %s%s",
 			prefix,
-			toggleStyle.Render(toggleMark),
+			c.styles.toggle.Render(toggleMark),
 			style.Render(c.rows[i].key.View()),
 			style.Render(c.rows[i].value.View()),
 		)

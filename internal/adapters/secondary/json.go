@@ -26,6 +26,18 @@ func (e *ErrSaveCollection) Error() string {
 	return "failed to save collection: " + e.err.Error()
 }
 
+type ErrNilCollection struct{}
+
+func (e *ErrNilCollection) Error() string {
+	return "collection is nil"
+}
+
+type ErrCollectionID struct{}
+
+func (e *ErrCollectionID) Error() string {
+	return "missing collection id"
+}
+
 type ErrLoadCollection struct {
 	err error
 }
@@ -50,6 +62,12 @@ func (e *ErrDeleteCollection) Error() string {
 	return "failed to delete collection: " + e.err.Error()
 }
 
+type ErrHistory struct{}
+
+func (e *ErrHistory) Error() string {
+	return "history is empty"
+}
+
 type ErrSaveHistory struct {
 	err error
 }
@@ -64,6 +82,18 @@ type ErrLoadHistory struct {
 
 func (e *ErrLoadHistory) Error() string {
 	return "failed to load history: " + e.err.Error()
+}
+
+type ErrNilEnvironment struct{}
+
+func (e *ErrNilEnvironment) Error() string {
+	return "environment is nil"
+}
+
+type ErrEnvironmentID struct{}
+
+func (e *ErrEnvironmentID) Error() string {
+	return "missing environment id"
 }
 
 type ErrSaveEnvironment struct {
@@ -96,6 +126,12 @@ type ErrDeleteEnvironment struct {
 
 func (e *ErrDeleteEnvironment) Error() string {
 	return "failed to delete environment: " + e.err.Error()
+}
+
+type ErrNilConfig struct{}
+
+func (e *ErrNilConfig) Error() string {
+	return "config is nil"
 }
 
 type ErrSaveConfig struct {
@@ -155,10 +191,20 @@ func NewJSONAdapter(logger *slog.Logger, baseDir string, collectionsDir string, 
 }
 
 func (a *JSONAdapter) SaveCollection(ctx context.Context, collection *entity.Collection) error {
+	if collection == nil {
+		return &ErrNilCollection{}
+	}
+
 	data, err := json.MarshalIndent(collection, "", "  ")
 	if err != nil {
 		return &ErrSaveCollection{err}
 	}
+
+	a.logger.Info("saving collection",
+		slog.String("id", collection.ID),
+		slog.String("name", collection.Name),
+		slog.Int("total_requests", len(collection.Requests)),
+	)
 
 	if err := os.WriteFile(a.collectionFile(collection.ID), data, 0o644); err != nil {
 		return &ErrSaveCollection{err}
@@ -168,6 +214,10 @@ func (a *JSONAdapter) SaveCollection(ctx context.Context, collection *entity.Col
 }
 
 func (a *JSONAdapter) LoadCollection(ctx context.Context, id string) (*entity.Collection, error) {
+	if len(id) == 0 {
+		return nil, &ErrCollectionID{}
+	}
+
 	data, err := os.ReadFile(a.collectionFile(id))
 	if err != nil {
 		return nil, &ErrLoadCollection{err}
@@ -219,6 +269,10 @@ func (a *JSONAdapter) ListCollections(ctx context.Context) ([]entity.Collection,
 }
 
 func (a *JSONAdapter) DeleteCollection(ctx context.Context, id string) error {
+	if len(id) == 0 {
+		return &ErrCollectionID{}
+	}
+
 	if err := os.Remove(filepath.Join(a.collectionsDir, id+JSONFileExt)); err != nil {
 		return &ErrDeleteCollection{err}
 	}
@@ -227,6 +281,10 @@ func (a *JSONAdapter) DeleteCollection(ctx context.Context, id string) error {
 }
 
 func (a *JSONAdapter) SaveHistory(ctx context.Context, history []entity.HistoryEntry) error {
+	if len(history) == 0 {
+		return &ErrHistory{}
+	}
+
 	data, err := json.MarshalIndent(history, "", "  ")
 	if err != nil {
 		return &ErrSaveHistory{err}
@@ -254,10 +312,18 @@ func (a *JSONAdapter) LoadHistory(ctx context.Context) ([]entity.HistoryEntry, e
 		return nil, &ErrLoadHistory{err}
 	}
 
+	if history == nil {
+		history = make([]entity.HistoryEntry, 0)
+	}
+
 	return history, nil
 }
 
 func (s *JSONAdapter) SaveEnvironment(ctx context.Context, env *entity.Environment) error {
+	if env == nil {
+		return &ErrNilEnvironment{}
+	}
+
 	data, err := json.MarshalIndent(env, "", "  ")
 	if err != nil {
 		return &ErrSaveEnvironment{err}
@@ -279,6 +345,10 @@ func (s *JSONAdapter) SaveEnvironment(ctx context.Context, env *entity.Environme
 }
 
 func (s *JSONAdapter) LoadEnvironment(ctx context.Context, id string) (*entity.Environment, error) {
+	if len(id) == 0 {
+		return nil, &ErrEnvironmentID{}
+	}
+
 	path := filepath.Join(s.environmentsDir, id+".json")
 
 	data, err := os.ReadFile(path)
@@ -323,6 +393,10 @@ func (s *JSONAdapter) ListEnvironments(ctx context.Context) ([]entity.Environmen
 		envs = append(envs, env)
 	}
 
+	if envs == nil {
+		envs = make([]entity.Environment, 0)
+	}
+
 	sort.Slice(envs, func(i, j int) bool {
 		return envs[i].Name < envs[j].Name
 	})
@@ -331,6 +405,10 @@ func (s *JSONAdapter) ListEnvironments(ctx context.Context) ([]entity.Environmen
 }
 
 func (s *JSONAdapter) DeleteEnvironment(ctx context.Context, id string) error {
+	if len(id) == 0 {
+		return &ErrEnvironmentID{}
+	}
+
 	path := filepath.Join(s.environmentsDir, id+".json")
 
 	if err := os.Remove(path); err != nil {
@@ -341,6 +419,10 @@ func (s *JSONAdapter) DeleteEnvironment(ctx context.Context, id string) error {
 }
 
 func (s *JSONAdapter) SaveConfig(ctx context.Context, cfg *valobj.Config) error {
+	if cfg == nil {
+		return &ErrNilConfig{}
+	}
+
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return &ErrSaveConfig{err}

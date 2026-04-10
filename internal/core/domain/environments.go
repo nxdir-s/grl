@@ -54,6 +54,7 @@ func (d *Environments) Delete(ctx context.Context, id string) error {
 
 	if cfg != nil && cfg.ActiveEnvID == id {
 		cfg.ActiveEnvID = ""
+
 		if err := d.configs.Save(ctx, cfg); err != nil {
 			return err
 		}

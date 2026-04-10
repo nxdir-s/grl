@@ -6,9 +6,42 @@ import (
 	"github.com/nxdir-s/grl/internal/core/valobj"
 )
 
+type MethodSelectorStyles struct {
+	get      lipgloss.Style
+	post     lipgloss.Style
+	put      lipgloss.Style
+	delete   lipgloss.Style
+	patch    lipgloss.Style
+	fallback lipgloss.Style
+}
+
+func NewMethodSelectorStyles() *MethodSelectorStyles {
+	return &MethodSelectorStyles{
+		get: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#73D216")),
+		post: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#F5A623")),
+		put: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#4A9EF7")),
+		delete: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#FF4444")),
+		patch: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#C678DD")),
+		fallback: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#626262")),
+	}
+}
+
 type MethodSelector struct {
 	methods []valobj.HTTPMethod
 	index   int
+	styles  *MethodSelectorStyles
 }
 
 func NewMethodSelector() MethodSelector {
@@ -22,6 +55,7 @@ func NewMethodSelector() MethodSelector {
 			valobj.MethodHead,
 			valobj.MethodOptions,
 		},
+		styles: NewMethodSelectorStyles(),
 	}
 }
 
@@ -34,22 +68,18 @@ func (c MethodSelector) Current() valobj.HTTPMethod {
 }
 
 func (c MethodSelector) View() string {
-	style := lipgloss.NewStyle().Bold(true)
-
 	switch c.Current() {
 	case valobj.MethodGet:
-		style = style.Foreground(lipgloss.Color("#73D216"))
+		return c.styles.get.Render(c.Current().String())
 	case valobj.MethodPost:
-		style = style.Foreground(lipgloss.Color("#F5A623"))
+		return c.styles.post.Render(c.Current().String())
 	case valobj.MethodPut:
-		style = style.Foreground(lipgloss.Color("#4A9EF7"))
+		return c.styles.put.Render(c.Current().String())
 	case valobj.MethodDelete:
-		style = style.Foreground(lipgloss.Color("#FF4444"))
+		return c.styles.delete.Render(c.Current().String())
 	case valobj.MethodPatch:
-		style = style.Foreground(lipgloss.Color("#C678DD"))
+		return c.styles.patch.Render(c.Current().String())
 	default:
-		style = style.Foreground(lipgloss.Color("#626262"))
+		return c.styles.fallback.Render(c.Current().String())
 	}
-
-	return style.Render(c.Current().String())
 }

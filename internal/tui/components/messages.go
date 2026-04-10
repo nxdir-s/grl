@@ -37,3 +37,9 @@ type EnvironmentsUpdatedMsg struct {
 type EnvironmentSwitchedMsg struct {
 	Active *entity.Environment
 }
+
+type FlashMsg struct {
+	Text string
+}
+
+type ClearFlashMsg struct{}

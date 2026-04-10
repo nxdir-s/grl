@@ -32,8 +32,8 @@ func (e *Response) FormatBody() string {
 	}
 
 	if strings.Contains(e.ContentType, JSONContentType) || e.looksLikeJSON() {
-		var pretty bytes.Buffer
-		if err := json.Indent(&pretty, e.Body.Bytes(), "", "  "); err == nil {
+		pretty := &bytes.Buffer{}
+		if err := json.Indent(pretty, e.Body.Bytes(), "", "  "); err == nil {
 			return pretty.String()
 		}
 	}

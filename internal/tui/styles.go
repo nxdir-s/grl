@@ -3,6 +3,7 @@ package tui
 import "charm.land/lipgloss/v2"
 
 type Styles struct {
+	base            lipgloss.Style
 	method          lipgloss.Style
 	urlBar          lipgloss.Style
 	statusSuccess   lipgloss.Style
@@ -11,14 +12,19 @@ type Styles struct {
 	statusServerErr lipgloss.Style
 	timing          lipgloss.Style
 	responseBody    lipgloss.Style
+	responseSection lipgloss.Style
 	statusBar       lipgloss.Style
+	focusIndicator  lipgloss.Style
 	title           lipgloss.Style
 	loading         lipgloss.Style
 	error           lipgloss.Style
+	envBadge        lipgloss.Style
+	flash           lipgloss.Style
 }
 
-func NewStyles(theme Theme) Styles {
-	return Styles{
+func NewStyles(theme *Theme) *Styles {
+	return &Styles{
+		base: lipgloss.NewStyle(),
 		method: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(theme.colorPrimary).
@@ -44,9 +50,14 @@ func NewStyles(theme Theme) Styles {
 		responseBody: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(theme.colorBorder),
+		responseSection: lipgloss.NewStyle().
+			Foreground(theme.colorMuted),
 		statusBar: lipgloss.NewStyle().
 			Foreground(theme.colorMuted).
 			Padding(0, 1),
+		focusIndicator: lipgloss.NewStyle().
+			Foreground(theme.colorPrimary).
+			Bold(true),
 		title: lipgloss.NewStyle().
 			Bold(true).
 			Foreground(theme.colorPrimary),
@@ -55,5 +66,11 @@ func NewStyles(theme Theme) Styles {
 			Italic(true),
 		error: lipgloss.NewStyle().
 			Foreground(theme.colorError),
+		envBadge: lipgloss.NewStyle().
+			Foreground(theme.colorPrimary).
+			Bold(true),
+		flash: lipgloss.NewStyle().
+			Foreground(theme.colorSuccess).
+			Bold(true),
 	}
 }

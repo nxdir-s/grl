@@ -75,3 +75,11 @@ type Substitutions interface {
 	Substitute(str string, vars map[string]string) string
 	SubstituteRequest(req *entity.Request, vars map[string]string) *entity.Request
 }
+
+type Clipboard interface {
+	Copy(s string) error
+}
+
+type Formatter interface {
+	ColorizeJSON(s string) string
+}

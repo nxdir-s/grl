@@ -19,8 +19,8 @@ type Theme struct {
 	colorBorder     color.Color
 }
 
-func NewTheme() Theme {
-	return Theme{
+func NewTheme() *Theme {
+	return &Theme{
 		colorPrimary:    lipgloss.Color("#7D56F4"),
 		colorSecondary:  lipgloss.Color("#FF6F61"),
 		colorSuccess:    lipgloss.Color("#73D216"),

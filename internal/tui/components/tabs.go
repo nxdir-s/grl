@@ -33,12 +33,32 @@ func (c RequestTab) String() string {
 	}
 }
 
+type RequestTabsStyles struct {
+	active    lipgloss.Style
+	inactive  lipgloss.Style
+	separator lipgloss.Style
+}
+
+func NewRequestTabsStyles() *RequestTabsStyles {
+	return &RequestTabsStyles{
+		active: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#7D56F4")).
+			Border(lipgloss.NormalBorder(), false, false, true, false).
+			BorderForeground(lipgloss.Color("#7D56F4")).
+			Padding(0, 2),
+		inactive: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#626262")).
+			Padding(0, 2),
+		separator: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#444444")),
+	}
+}
+
 type RequestTabs struct {
 	active   RequestTab
 	tabNames []string
-
-	activeStyle   lipgloss.Style
-	inactiveStyle lipgloss.Style
+	styles   *RequestTabsStyles
 }
 
 func NewRequestTabs() RequestTabs {
@@ -49,15 +69,7 @@ func NewRequestTabs() RequestTabs {
 			RequestTabParamsName,
 			RequestTabBodyName,
 		},
-		activeStyle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#7D56F4")).
-			Border(lipgloss.NormalBorder(), false, false, true, false).
-			BorderForeground(lipgloss.Color("#7D56F4")).
-			Padding(0, 2),
-		inactiveStyle: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#626262")).
-			Padding(0, 2),
+		styles: NewRequestTabsStyles(),
 	}
 }
 
@@ -83,17 +95,15 @@ func (c RequestTabs) View(width int) string {
 	for i := range c.tabNames {
 		switch RequestTab(i) == c.active {
 		case true:
-			tabs = append(tabs, c.activeStyle.Render(c.tabNames[i]))
+			tabs = append(tabs, c.styles.active.Render(c.tabNames[i]))
 		case false:
-			tabs = append(tabs, c.inactiveStyle.Render(c.tabNames[i]))
+			tabs = append(tabs, c.styles.inactive.Render(c.tabNames[i]))
 		}
 	}
 
 	row := lipgloss.JoinHorizontal(lipgloss.Bottom, tabs...)
 
-	separator := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#444444")).
-		Render(strings.Repeat("─", max(0, width-lipgloss.Width(row))))
+	separator := c.styles.separator.Render(strings.Repeat("─", max(0, width-lipgloss.Width(row))))
 
 	return row + separator
 }
@@ -121,12 +131,32 @@ func (c ResponseTab) String() string {
 	}
 }
 
+type ResponseTabsStyles struct {
+	active    lipgloss.Style
+	inactive  lipgloss.Style
+	separator lipgloss.Style
+}
+
+func NewResponseTabsStyles() *ResponseTabsStyles {
+	return &ResponseTabsStyles{
+		active: lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("#7D56F4")).
+			Border(lipgloss.NormalBorder(), false, false, true, false).
+			BorderForeground(lipgloss.Color("#7D56F4")).
+			Padding(0, 2),
+		inactive: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#626262")).
+			Padding(0, 2),
+		separator: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#444444")),
+	}
+}
+
 type ResponseTabs struct {
 	active   ResponseTab
 	tabNames []string
-
-	activeStyle   lipgloss.Style
-	inactiveStyle lipgloss.Style
+	styles   *ResponseTabsStyles
 }
 
 func NewResponseTabs() ResponseTabs {
@@ -136,15 +166,7 @@ func NewResponseTabs() ResponseTabs {
 			ResponseTabBodyName,
 			ResponseTabHeadersName,
 		},
-		activeStyle: lipgloss.NewStyle().
-			Bold(true).
-			Foreground(lipgloss.Color("#7D56F4")).
-			Border(lipgloss.NormalBorder(), false, false, true, false).
-			BorderForeground(lipgloss.Color("#7D56F4")).
-			Padding(0, 2),
-		inactiveStyle: lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#626262")).
-			Padding(0, 2),
+		styles: NewResponseTabsStyles(),
 	}
 }
 
@@ -169,17 +191,15 @@ func (c ResponseTabs) View(width int) string {
 	for i := range c.tabNames {
 		switch ResponseTab(i) == c.active {
 		case true:
-			tabs = append(tabs, c.activeStyle.Render(c.tabNames[i]))
+			tabs = append(tabs, c.styles.active.Render(c.tabNames[i]))
 		case false:
-			tabs = append(tabs, c.inactiveStyle.Render(c.tabNames[i]))
+			tabs = append(tabs, c.styles.inactive.Render(c.tabNames[i]))
 		}
 	}
 
 	row := lipgloss.JoinHorizontal(lipgloss.Bottom, tabs...)
 
-	separator := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#444444")).
-		Render(strings.Repeat("─", max(0, width-lipgloss.Width(row))))
+	separator := c.styles.separator.Render(strings.Repeat("─", max(0, width-lipgloss.Width(row))))
 
 	return row + separator
 }
