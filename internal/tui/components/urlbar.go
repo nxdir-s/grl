@@ -37,9 +37,9 @@ func (c *URLBar) SetValue(s string) {
 	c.input.SetValue(s)
 }
 
+// textinput doesn't have a Width setter in v2, but the prompt width is handled by the parent
 func (c *URLBar) SetWidth(w int) {
 	c.input.CharLimit = 2048
-	// textinput doesn't have a Width setter in v2, but the prompt width is handled by the parent
 }
 
 func (c URLBar) Update(msg tea.Msg) (URLBar, tea.Cmd) {

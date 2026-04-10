@@ -6,7 +6,7 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-type Theme struct {
+type Themes struct {
 	colorPrimary    color.Color
 	colorSecondary  color.Color
 	colorSuccess    color.Color
@@ -19,8 +19,8 @@ type Theme struct {
 	colorBorder     color.Color
 }
 
-func NewTheme() *Theme {
-	return &Theme{
+func NewThemes() *Themes {
+	return &Themes{
 		colorPrimary:    lipgloss.Color("#7D56F4"),
 		colorSecondary:  lipgloss.Color("#FF6F61"),
 		colorSuccess:    lipgloss.Color("#73D216"),

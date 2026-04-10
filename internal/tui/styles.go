@@ -22,55 +22,55 @@ type Styles struct {
 	flash           lipgloss.Style
 }
 
-func NewStyles(theme *Theme) *Styles {
+func NewStyles(themes *Themes) *Styles {
 	return &Styles{
 		base: lipgloss.NewStyle(),
 		method: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(theme.colorPrimary).
+			Foreground(themes.colorPrimary).
 			Padding(0, 1),
 		urlBar: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(theme.colorBorder).
+			BorderForeground(themes.colorBorder).
 			Padding(0, 1),
 		statusSuccess: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(theme.colorSuccess),
+			Foreground(themes.colorSuccess),
 		statusRedirect: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(theme.colorWarning),
+			Foreground(themes.colorWarning),
 		statusClientErr: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(theme.colorSecondary),
+			Foreground(themes.colorSecondary),
 		statusServerErr: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(theme.colorError),
+			Foreground(themes.colorError),
 		timing: lipgloss.NewStyle().
-			Foreground(theme.colorMuted),
+			Foreground(themes.colorMuted),
 		responseBody: lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(theme.colorBorder),
+			BorderForeground(themes.colorBorder),
 		responseSection: lipgloss.NewStyle().
-			Foreground(theme.colorMuted),
+			Foreground(themes.colorMuted),
 		statusBar: lipgloss.NewStyle().
-			Foreground(theme.colorMuted).
+			Foreground(themes.colorMuted).
 			Padding(0, 1),
 		focusIndicator: lipgloss.NewStyle().
-			Foreground(theme.colorPrimary).
+			Foreground(themes.colorPrimary).
 			Bold(true),
 		title: lipgloss.NewStyle().
 			Bold(true).
-			Foreground(theme.colorPrimary),
+			Foreground(themes.colorPrimary),
 		loading: lipgloss.NewStyle().
-			Foreground(theme.colorMuted).
+			Foreground(themes.colorMuted).
 			Italic(true),
 		error: lipgloss.NewStyle().
-			Foreground(theme.colorError),
+			Foreground(themes.colorError),
 		envBadge: lipgloss.NewStyle().
-			Foreground(theme.colorPrimary).
+			Foreground(themes.colorPrimary).
 			Bold(true),
 		flash: lipgloss.NewStyle().
-			Foreground(theme.colorSuccess).
+			Foreground(themes.colorSuccess).
 			Bold(true),
 	}
 }

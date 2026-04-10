@@ -106,7 +106,6 @@ func (c *Sidebar) SetData(history []entity.HistoryEntry, collections []entity.Co
 	c.setCollections(collections)
 	c.setHistory(history)
 
-	// Keep cursor in bounds
 	if c.cursor >= len(c.entries) {
 		c.cursor = max(0, len(c.entries)-1)
 	}
@@ -172,7 +171,6 @@ func (c *Sidebar) setHistory(history []entity.HistoryEntry) {
 	}
 }
 
-// SelectedRequest returns the request at the current cursor, or nil if it's a section header.
 func (c Sidebar) SelectedRequest() *entity.Request {
 	if c.cursor < 0 || c.cursor >= len(c.entries) {
 		return nil
@@ -212,7 +210,6 @@ func (c Sidebar) Update(msg tea.Msg) (Sidebar, tea.Cmd) {
 func (c *Sidebar) moveCursor(dir int) {
 	next := c.cursor + dir
 
-	// Skip section headers
 	for next >= 0 && next < len(c.entries) {
 		if c.entries[next].request != nil || c.entries[next].collection != nil {
 			break
@@ -225,7 +222,6 @@ func (c *Sidebar) moveCursor(dir int) {
 		c.cursor = next
 	}
 
-	// Scroll viewport
 	visible := c.height - 2
 	if visible < 1 {
 		visible = 1
@@ -267,7 +263,6 @@ func (c Sidebar) View() string {
 		}
 	}
 
-	// Pad to fill height
 	for len(lines) < visible {
 		lines = append(lines, "")
 	}
@@ -277,7 +272,6 @@ func (c Sidebar) View() string {
 	return c.styles.border.Width(c.width).Height(c.height).Render(content)
 }
 
-// LoadRequestMsg is sent when the user selects a request from the sidebar.
 type LoadRequestMsg struct {
 	Request *entity.Request
 }

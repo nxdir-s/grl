@@ -89,6 +89,14 @@ const (
 	SidebarWidth int = 28
 )
 
+type Rect struct {
+	x, y, w, h int
+}
+
+func (r Rect) contains(x, y int) bool {
+	return x >= r.x && x < r.x+r.w && y >= r.y && y < r.y+r.h
+}
+
 type TUIOpts func(t *TUI)
 
 func WithContext(ctx context.Context) TUIOpts {
@@ -114,11 +122,16 @@ type TUI struct {
 	width  int
 	height int
 
+	sidebarRect  Rect
+	urlBarRect   Rect
+	builderRect  Rect
+	responseRect Rect
+
 	panelCount   int
 	sidebarWidth int
 
 	styles *Styles
-	theme  *Theme
+	themes *Themes
 
 	activeEnv *entity.Environment
 
@@ -128,7 +141,7 @@ type TUI struct {
 }
 
 func New(adapter ports.TUI, opts ...TUIOpts) *TUI {
-	theme := NewTheme()
+	themes := NewThemes()
 
 	ui := &TUI{
 		ctx:          context.Background(),
@@ -144,8 +157,8 @@ func New(adapter ports.TUI, opts ...TUIOpts) *TUI {
 		keys:         defaultKeyMap(),
 		panelCount:   PanelCount,
 		sidebarWidth: SidebarWidth,
-		styles:       NewStyles(theme),
-		theme:        theme,
+		styles:       NewStyles(themes),
+		themes:       themes,
 	}
 
 	for _, opt := range opts {
@@ -183,6 +196,18 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		t.recalcLayout()
 
 		return t, nil
+	case tea.MouseClickMsg:
+		if t.envModal.IsOpen() {
+			return t, nil
+		}
+
+		return t, t.handleMouseClick(msg.X, msg.Y)
+	case tea.MouseWheelMsg:
+		if t.envModal.IsOpen() {
+			return t, nil
+		}
+
+		return t, t.handleMouseWheel(msg)
 	case tea.KeyPressMsg:
 		if t.envModal.IsOpen() {
 			var cmd tea.Cmd
@@ -265,7 +290,6 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return t, nil
 	}
 
-	// If modal is open, route non-key messages to it
 	if t.envModal.IsOpen() {
 		var cmd tea.Cmd
 		t.envModal, cmd = t.envModal.Update(msg)
@@ -319,7 +343,6 @@ func (t *TUI) View() tea.View {
 		builderView,
 	)
 
-	// Pad columns to fill height
 	badge := t.envBadge()
 	if len(t.flashMsg) != 0 {
 		badge = t.styles.flash.Render(t.flashMsg) + "  " + badge
@@ -339,7 +362,7 @@ func (t *TUI) View() tea.View {
 		Render(requestContent)
 
 	colSeparator := t.styles.base.
-		Foreground(t.theme.colorBorder).
+		Foreground(t.themes.colorBorder).
 		Height(mainHeight).
 		Render(strings.Repeat("│\n", mainHeight))
 
@@ -364,6 +387,7 @@ func (t *TUI) View() tea.View {
 
 	v := tea.NewView(view)
 	v.AltScreen = true
+	v.MouseMode = tea.MouseModeCellMotion
 
 	return v
 }
@@ -395,6 +419,48 @@ func (t *TUI) envBadge() string {
 	}
 
 	return t.styles.envBadge.Render("env: " + name)
+}
+
+func (t *TUI) handleMouseClick(x, y int) tea.Cmd {
+	var target FocusPanel
+
+	switch {
+	case t.sidebarRect.contains(x, y):
+		target = FocusSidebar
+	case t.urlBarRect.contains(x, y):
+		target = FocusURLBar
+	case t.builderRect.contains(x, y):
+		target = FocusRequestBuilder
+	case t.responseRect.contains(x, y):
+		target = FocusResponseViewer
+	default:
+		return nil
+	}
+
+	if target == t.focus {
+		return nil
+	}
+
+	t.blurCurrent()
+	t.focus = target
+
+	return t.focusCurrent()
+}
+
+func (t *TUI) handleMouseWheel(msg tea.MouseWheelMsg) tea.Cmd {
+	x, y := msg.X, msg.Y
+
+	var cmd tea.Cmd
+	switch {
+	case t.responseRect.contains(x, y):
+		t.response, cmd = t.response.Update(msg)
+	case t.builderRect.contains(x, y):
+		t.builder, cmd = t.builder.Update(msg)
+	case t.sidebarRect.contains(x, y):
+		t.sidebar, cmd = t.sidebar.Update(msg)
+	}
+
+	return cmd
 }
 
 func (t *TUI) responseSection() string {
@@ -484,7 +550,7 @@ func (t *TUI) recalcLayout() {
 	mainWidth := t.width - t.sidebarWidth - 1
 	helpHeight := 2
 	responseWidth := mainWidth/2 - 4
-	requestWidth := mainWidth - mainWidth/2 - 5 // account for separator + padding
+	requestWidth := mainWidth - mainWidth/2 - 5
 	contentHeight := t.height - helpHeight - 1
 
 	builderHeight := 10
@@ -496,6 +562,42 @@ func (t *TUI) recalcLayout() {
 	t.sidebar.SetSize(t.sidebarWidth, t.height-helpHeight)
 	t.builder.SetSize(requestWidth, builderHeight)
 	t.response.SetSize(responseWidth, responseHeight)
+
+	mainHeight := t.height - helpHeight - 1
+
+	t.sidebarRect = Rect{
+		x: 0,
+		y: 0,
+		w: SidebarWidth,
+		h: mainHeight,
+	}
+
+	reqColW := mainWidth - mainWidth/2 - 1
+	reqColX := SidebarWidth
+
+	t.urlBarRect = Rect{
+		x: reqColX,
+		y: 0,
+		w: reqColW,
+		h: 3,
+	}
+
+	t.builderRect = Rect{
+		x: reqColX,
+		y: 3,
+		w: reqColW,
+		h: mainHeight - 3,
+	}
+
+	respColX := reqColX + reqColW + 1
+	respColW := t.width - respColX
+
+	t.responseRect = Rect{
+		x: respColX,
+		y: 0,
+		w: respColW,
+		h: mainHeight,
+	}
 }
 
 func (t *TUI) sendRequest() tea.Cmd {
@@ -736,7 +838,6 @@ func (t *TUI) loadRequest(req *entity.Request) {
 		t.method.Next()
 	}
 
-	// Set URL — we need to re-create the URL bar with the value
 	t.urlBar.SetValue(req.URL)
 	// TODO: Load headers, params, body into the builder in future iteration
 }

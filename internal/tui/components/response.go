@@ -65,7 +65,6 @@ func (c *ResponseHeaderPane) SetHeaders(headers []valobj.Header) {
 		return
 	}
 
-	// Sort headers by key for consistent display
 	sorted := make([]valobj.Header, len(headers))
 	copy(sorted, headers)
 
@@ -407,7 +406,23 @@ func (c ResponseViewer) CopyContent() string {
 }
 
 func (c ResponseViewer) Update(msg tea.Msg) (ResponseViewer, tea.Cmd) {
-	if !c.focused || !c.hasResp {
+	if !c.hasResp {
+		return c, nil
+	}
+
+	if _, isWheel := msg.(tea.MouseWheelMsg); isWheel {
+		var cmd tea.Cmd
+		switch c.tabs.Active() {
+		case ResponseTabBody:
+			c.bodyPane, cmd = c.bodyPane.Update(msg)
+		case ResponseTabHeaders:
+			c.headerPane, cmd = c.headerPane.Update(msg)
+		}
+
+		return c, cmd
+	}
+
+	if !c.focused {
 		return c, nil
 	}
 
@@ -423,7 +438,6 @@ func (c ResponseViewer) Update(msg tea.Msg) (ResponseViewer, tea.Cmd) {
 		}
 	}
 
-	// Route scroll events to active pane
 	var cmd tea.Cmd
 	switch c.tabs.Active() {
 	case ResponseTabBody:
