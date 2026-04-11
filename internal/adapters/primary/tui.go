@@ -533,6 +533,10 @@ func (a *TUIAdapter) GetConfig(ctx context.Context) *valobj.Config {
 		a.logger.Error("failed to get config", slog.String("err", err.Error()))
 	}
 
+	if config == nil {
+		return &valobj.Config{}
+	}
+
 	return config
 }
 
