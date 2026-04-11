@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -46,6 +47,12 @@ func main() {
 		fmt.Fprintf(os.Stdout, "failed to create log file: %s\n", err.Error())
 		os.Exit(1)
 	}
+
+	defer func() {
+		if err := logFile.Close(); err != nil {
+			fmt.Fprintf(os.Stdout, "failed to close log file: %s\n", err.Error())
+		}
+	}()
 
 	logger := slog.New(slog.NewTextHandler(logFile, nil))
 	slog.SetDefault(logger)
@@ -105,6 +112,12 @@ func main() {
 	)
 
 	app := tui.New(adapter, tui.WithContext(ctx))
+
+	defer func() {
+		if _, err := io.Copy(os.Stdout, logFile); err != nil {
+			fmt.Fprintf(os.Stdout, "failed to copy log to Stdout: %s\n", err.Error())
+		}
+	}()
 
 	if err := app.Run(ctx); err != nil {
 		logger.Error("failed to run", slog.String("err", err.Error()))
