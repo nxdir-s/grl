@@ -223,6 +223,10 @@ func (a *JSONAdapter) LoadCollection(ctx context.Context, id string) (*entity.Co
 		return nil, &ErrLoadCollection{err}
 	}
 
+	a.logger.Info("loading collection",
+		slog.String("id", id),
+	)
+
 	var collection entity.Collection
 	if err := json.Unmarshal(data, &collection); err != nil {
 		return nil, &ErrLoadCollection{err}
@@ -232,6 +236,8 @@ func (a *JSONAdapter) LoadCollection(ctx context.Context, id string) (*entity.Co
 }
 
 func (a *JSONAdapter) ListCollections(ctx context.Context) ([]entity.Collection, error) {
+	a.logger.Info("loading collections")
+
 	entries, err := os.ReadDir(a.collectionsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -265,6 +271,8 @@ func (a *JSONAdapter) ListCollections(ctx context.Context) ([]entity.Collection,
 		return collections[i].Name < collections[j].Name
 	})
 
+	a.logger.Info("collections found", slog.Int("total", len(collections)))
+
 	return collections, nil
 }
 
@@ -272,6 +280,8 @@ func (a *JSONAdapter) DeleteCollection(ctx context.Context, id string) error {
 	if len(id) == 0 {
 		return &ErrCollectionID{}
 	}
+
+	a.logger.Info("deleting collection", slog.String("id", id))
 
 	if err := os.Remove(filepath.Join(a.collectionsDir, id+JSONFileExt)); err != nil {
 		return &ErrDeleteCollection{err}
@@ -290,6 +300,8 @@ func (a *JSONAdapter) SaveHistory(ctx context.Context, history []entity.HistoryE
 		return &ErrSaveHistory{err}
 	}
 
+	a.logger.Info("saving history", slog.Int("total_entries", len(history)))
+
 	if err := os.WriteFile(a.historyFile, data, 0o644); err != nil {
 		return &ErrSaveHistory{err}
 	}
@@ -298,6 +310,8 @@ func (a *JSONAdapter) SaveHistory(ctx context.Context, history []entity.HistoryE
 }
 
 func (a *JSONAdapter) LoadHistory(ctx context.Context) ([]entity.HistoryEntry, error) {
+	a.logger.Info("loading history")
+
 	data, err := os.ReadFile(a.historyFile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -315,6 +329,8 @@ func (a *JSONAdapter) LoadHistory(ctx context.Context) ([]entity.HistoryEntry, e
 	if history == nil {
 		history = make([]entity.HistoryEntry, 0)
 	}
+
+	a.logger.Info("history found", slog.Int("total_entries", len(history)))
 
 	return history, nil
 }
@@ -344,12 +360,14 @@ func (s *JSONAdapter) SaveEnvironment(ctx context.Context, env *entity.Environme
 	return nil
 }
 
-func (s *JSONAdapter) LoadEnvironment(ctx context.Context, id string) (*entity.Environment, error) {
+func (a *JSONAdapter) LoadEnvironment(ctx context.Context, id string) (*entity.Environment, error) {
 	if len(id) == 0 {
 		return nil, &ErrEnvironmentID{}
 	}
 
-	path := filepath.Join(s.environmentsDir, id+".json")
+	a.logger.Info("loading environment")
+
+	path := filepath.Join(a.environmentsDir, id+".json")
 
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -361,11 +379,18 @@ func (s *JSONAdapter) LoadEnvironment(ctx context.Context, id string) (*entity.E
 		return nil, &ErrLoadEnvironment{err}
 	}
 
+	a.logger.Info("environment found",
+		slog.String("id", env.ID),
+		slog.String("name", env.ID),
+	)
+
 	return &env, nil
 }
 
-func (s *JSONAdapter) ListEnvironments(ctx context.Context) ([]entity.Environment, error) {
-	entries, err := os.ReadDir(s.environmentsDir)
+func (a *JSONAdapter) ListEnvironments(ctx context.Context) ([]entity.Environment, error) {
+	a.logger.Info("listing environments")
+
+	entries, err := os.ReadDir(a.environmentsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -380,7 +405,7 @@ func (s *JSONAdapter) ListEnvironments(ctx context.Context) ([]entity.Environmen
 			continue
 		}
 
-		data, err := os.ReadFile(filepath.Join(s.environmentsDir, entries[i].Name()))
+		data, err := os.ReadFile(filepath.Join(a.environmentsDir, entries[i].Name()))
 		if err != nil {
 			continue
 		}
@@ -401,15 +426,19 @@ func (s *JSONAdapter) ListEnvironments(ctx context.Context) ([]entity.Environmen
 		return envs[i].Name < envs[j].Name
 	})
 
+	a.logger.Info("environments found", slog.Int("total", len(envs)))
+
 	return envs, nil
 }
 
-func (s *JSONAdapter) DeleteEnvironment(ctx context.Context, id string) error {
+func (a *JSONAdapter) DeleteEnvironment(ctx context.Context, id string) error {
 	if len(id) == 0 {
 		return &ErrEnvironmentID{}
 	}
 
-	path := filepath.Join(s.environmentsDir, id+".json")
+	a.logger.Info("deleting environment", slog.String("id", id))
+
+	path := filepath.Join(a.environmentsDir, id+".json")
 
 	if err := os.Remove(path); err != nil {
 		return &ErrDeleteEnvironment{err}
@@ -418,7 +447,7 @@ func (s *JSONAdapter) DeleteEnvironment(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *JSONAdapter) SaveConfig(ctx context.Context, cfg *valobj.Config) error {
+func (a *JSONAdapter) SaveConfig(ctx context.Context, cfg *valobj.Config) error {
 	if cfg == nil {
 		return &ErrNilConfig{}
 	}
@@ -428,15 +457,25 @@ func (s *JSONAdapter) SaveConfig(ctx context.Context, cfg *valobj.Config) error 
 		return &ErrSaveConfig{err}
 	}
 
-	if err := os.WriteFile(s.configFile, data, 0o644); err != nil {
+	a.logger.Info("saving config",
+		slog.String("active_env", cfg.ActiveEnvID),
+		slog.String("default_method", cfg.DefaultMethod),
+		slog.Int("timeout", cfg.TimeoutSeconds),
+		slog.Int("history_limit", cfg.HistoryLimit),
+		slog.Bool("follow_redirects", cfg.FollowRedirects),
+	)
+
+	if err := os.WriteFile(a.configFile, data, 0o644); err != nil {
 		return &ErrSaveConfig{err}
 	}
 
 	return nil
 }
 
-func (s *JSONAdapter) LoadConfig(ctx context.Context) (*valobj.Config, error) {
-	data, err := os.ReadFile(s.configFile)
+func (a *JSONAdapter) LoadConfig(ctx context.Context) (*valobj.Config, error) {
+	a.logger.Info("loading config")
+
+	data, err := os.ReadFile(a.configFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -449,6 +488,14 @@ func (s *JSONAdapter) LoadConfig(ctx context.Context) (*valobj.Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return nil, &ErrLoadConfig{err}
 	}
+
+	a.logger.Info("found config",
+		slog.String("active_env", cfg.ActiveEnvID),
+		slog.String("default_method", cfg.DefaultMethod),
+		slog.Int("timeout", cfg.TimeoutSeconds),
+		slog.Int("history_limit", cfg.HistoryLimit),
+		slog.Bool("follow_redirects", cfg.FollowRedirects),
+	)
 
 	return &cfg, nil
 }

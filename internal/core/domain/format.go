@@ -69,7 +69,6 @@ func (d *Formatter) ColorizeJSON(s string) string {
 			i = end + 1
 
 		case c == '-' || (c >= '0' && c <= '9'):
-			// Number
 			end := i
 			if c == '-' {
 				end++
