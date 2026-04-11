@@ -84,6 +84,7 @@ func WithHttpClient(client *http.Client) HttpOpt {
 type HttpConfig struct {
 	TlsConfig             *tls.Config
 	RetryEnabled          bool
+	FollowRedirects       bool
 	Timeout               int
 	RetryLimit            int
 	MaxIdleConnections    int
@@ -143,6 +144,12 @@ func NewHttpAdapter(cfg *HttpConfig, logger *slog.Logger, opts ...HttpOpt) *Http
 		},
 		limit:  byteLimit,
 		logger: logger,
+	}
+
+	if !cfg.FollowRedirects {
+		adapter.http.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
 	}
 
 	for _, opt := range opts {

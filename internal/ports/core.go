@@ -44,7 +44,7 @@ type HistoryService interface {
 }
 
 type Environments interface {
-	Create(ctx context.Context, name string) (*entity.Environment, error)
+	Create(ctx context.Context, id string, name string) (*entity.Environment, error)
 	List(ctx context.Context) ([]entity.Environment, error)
 	Get(ctx context.Context, id string) (*entity.Environment, error)
 	Save(ctx context.Context, env *entity.Environment) error
@@ -64,6 +64,7 @@ type EnvironmentService interface {
 type Configs interface {
 	Get(ctx context.Context) (*valobj.Config, error)
 	Save(ctx context.Context, cfg *valobj.Config) error
+	Defaults() *valobj.Config
 }
 
 type ConfigService interface {

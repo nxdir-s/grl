@@ -1,6 +1,9 @@
 package components
 
-import "github.com/nxdir-s/grl/internal/core/entity"
+import (
+	"github.com/nxdir-s/grl/internal/core/entity"
+	"github.com/nxdir-s/grl/internal/core/valobj"
+)
 
 type ResponseReceivedMsg struct {
 	Response *entity.Response
@@ -43,3 +46,7 @@ type FlashMsg struct {
 }
 
 type ClearFlashMsg struct{}
+
+type ConfigUpdatedMsg struct {
+	Cfg *valobj.Config
+}

@@ -63,6 +63,15 @@ func (c *MethodSelector) Next() {
 	c.index = (c.index + 1) % len(c.methods)
 }
 
+func (m *MethodSelector) SetCurrent(method valobj.HTTPMethod) {
+	for i := range m.methods {
+		if m.methods[i] == method {
+			m.index = i
+			return
+		}
+	}
+}
+
 func (c MethodSelector) Current() valobj.HTTPMethod {
 	return c.methods[c.index]
 }

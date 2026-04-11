@@ -101,6 +101,7 @@ func main() {
 		primary.WithEnvironments(environments),
 		primary.WithFormatter(formatter),
 		primary.WithClipboard(clipboard),
+		primary.WithConfigs(configs),
 	)
 
 	app := tui.New(adapter, tui.WithContext(ctx))

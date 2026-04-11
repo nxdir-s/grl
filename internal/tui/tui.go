@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/nxdir-s/grl/internal/core/entity"
+	"github.com/nxdir-s/grl/internal/core/valobj"
 	"github.com/nxdir-s/grl/internal/ports"
 	"github.com/nxdir-s/grl/internal/tui/components"
 )
@@ -18,6 +19,7 @@ type KeyMap struct {
 	CycleMethod key.Binding
 	FocusNext   key.Binding
 	EnvModal    key.Binding
+	ConfigModal key.Binding
 	Copy        key.Binding
 	Quit        key.Binding
 }
@@ -40,6 +42,10 @@ func defaultKeyMap() KeyMap {
 			key.WithKeys("ctrl+e"),
 			key.WithHelp("ctrl+e", "environments"),
 		),
+		ConfigModal: key.NewBinding(
+			key.WithKeys("ctrl+t"),
+			key.WithHelp("ctrl+t", "settings"),
+		),
 		Copy: key.NewBinding(
 			key.WithKeys("ctrl+y"),
 			key.WithHelp("ctrl+y", "copy"),
@@ -57,6 +63,7 @@ func (m KeyMap) ShortHelp() []key.Binding {
 		m.CycleMethod,
 		m.FocusNext,
 		m.EnvModal,
+		m.ConfigModal,
 		m.Copy,
 		m.Quit,
 	}
@@ -69,6 +76,7 @@ func (m KeyMap) FullHelp() [][]key.Binding {
 			m.CycleMethod,
 			m.FocusNext,
 			m.EnvModal,
+			m.ConfigModal,
 			m.Copy,
 			m.Quit,
 		},
@@ -109,13 +117,14 @@ type TUI struct {
 	ctx     context.Context
 	adapter ports.TUI
 
-	sidebar   components.Sidebar
-	method    components.MethodSelector
-	urlBar    components.URLBar
-	builder   components.RequestBuilder
-	response  components.ResponseViewer
-	statusBar components.StatusBar
-	envModal  components.EnvModal
+	sidebar     components.Sidebar
+	method      components.MethodSelector
+	urlBar      components.URLBar
+	builder     components.RequestBuilder
+	response    components.ResponseViewer
+	statusBar   components.StatusBar
+	envModal    components.EnvModal
+	configModal components.ConfigModal
 
 	focus  FocusPanel
 	keys   KeyMap
@@ -153,6 +162,7 @@ func New(adapter ports.TUI, opts ...TUIOpts) *TUI {
 		response:     components.NewResponseViewer(adapter),
 		statusBar:    components.NewStatusBar(),
 		envModal:     components.NewEnvModal(),
+		configModal:  components.NewConfigModal(),
 		focus:        FocusURLBar,
 		keys:         defaultKeyMap(),
 		panelCount:   PanelCount,
@@ -183,6 +193,7 @@ func (t *TUI) Init() tea.Cmd {
 		t.urlBar.Focus(),
 		t.loadSidebarData(),
 		t.loadEnvironments(),
+		t.loadConfig(),
 	)
 }
 
@@ -197,13 +208,13 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return t, nil
 	case tea.MouseClickMsg:
-		if t.envModal.IsOpen() {
+		if t.modalOpen() {
 			return t, nil
 		}
 
 		return t, t.handleMouseClick(msg.X, msg.Y)
 	case tea.MouseWheelMsg:
-		if t.envModal.IsOpen() {
+		if t.modalOpen() {
 			return t, nil
 		}
 
@@ -215,12 +226,20 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return t, cmd
 		}
 
+		if t.configModal.IsOpen() {
+			var cmd tea.Cmd
+			t.configModal, cmd = t.configModal.Update(msg)
+			return t, cmd
+		}
+
 		switch {
 		case key.Matches(msg, t.keys.Quit):
 			return t, tea.Quit
 		case key.Matches(msg, t.keys.EnvModal):
 			t.envModal.Open()
 			return t, t.loadEnvironments()
+		case key.Matches(msg, t.keys.ConfigModal):
+			return t, t.openConfigModal()
 		case key.Matches(msg, t.keys.CycleMethod):
 			t.method.Next()
 			return t, nil
@@ -274,6 +293,11 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return t, t.deleteEnv(msg.ID)
 	case components.SaveEnvMsg:
 		return t, t.saveEnv(msg.Env)
+	case components.SaveConfigMsg:
+		return t, t.saveConfig(msg.Cfg)
+	case components.ConfigUpdatedMsg:
+		t.applyConfig(msg.Cfg)
+		return t, nil
 	case components.LoadRequestMsg:
 		t.loadRequest(msg.Request)
 		return t, nil
@@ -293,6 +317,12 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if t.envModal.IsOpen() {
 		var cmd tea.Cmd
 		t.envModal, cmd = t.envModal.Update(msg)
+		return t, cmd
+	}
+
+	if t.configModal.IsOpen() {
+		var cmd tea.Cmd
+		t.configModal, cmd = t.configModal.Update(msg)
 		return t, cmd
 	}
 
@@ -372,15 +402,20 @@ func (t *TUI) View() tea.View {
 
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebarView, mainContent)
 
-	if t.envModal.IsOpen() {
-		bodyWidth := t.width
-		bodyHeight := mainHeight
-
+	switch {
+	case t.envModal.IsOpen():
 		body = lipgloss.Place(
-			bodyWidth, bodyHeight,
+			t.width, mainHeight,
 			lipgloss.Center, lipgloss.Center,
 			t.envModal.View(),
 		)
+	case t.configModal.IsOpen():
+		body = lipgloss.Place(
+			t.width, mainHeight,
+			lipgloss.Center, lipgloss.Center,
+			t.configModal.View(),
+		)
+
 	}
 
 	view := lipgloss.JoinVertical(lipgloss.Left, body, helpView)
@@ -600,6 +635,14 @@ func (t *TUI) recalcLayout() {
 	}
 }
 
+func (t *TUI) modalOpen() bool {
+	if t.envModal.IsOpen() || t.configModal.IsOpen() {
+		return true
+	}
+
+	return false
+}
+
 func (t *TUI) sendRequest() tea.Cmd {
 	url := t.urlBar.Value()
 	method := t.method.Current()
@@ -674,6 +717,47 @@ func (t *TUI) loadSidebarData() tea.Cmd {
 			History: history,
 		}
 	}
+}
+
+func (t *TUI) loadConfig() tea.Cmd {
+	return func() tea.Msg {
+		return components.ConfigUpdatedMsg{
+			Cfg: t.adapter.GetConfig(t.ctx),
+		}
+	}
+}
+
+func (t *TUI) openConfigModal() tea.Cmd {
+	return t.configModal.Open(t.adapter.GetConfig(t.ctx))
+}
+
+func (t *TUI) saveConfig(cfg *valobj.Config) tea.Cmd {
+	return tea.Batch(
+		func() tea.Msg {
+			if err := t.adapter.SaveConfig(t.ctx, cfg); err != nil {
+				return components.ErrorMsg{
+					Err: err,
+				}
+			}
+
+			return components.ConfigUpdatedMsg{
+				Cfg: cfg,
+			}
+		},
+		func() tea.Msg {
+			return components.FlashMsg{
+				Text: components.ConfigSavedAlert,
+			}
+		},
+	)
+}
+
+func (t *TUI) applyConfig(cfg *valobj.Config) {
+	if cfg == nil {
+		return
+	}
+
+	t.method.SetCurrent(valobj.HTTPMethod(cfg.DefaultMethod))
 }
 
 func (t *TUI) loadEnvironments() tea.Cmd {

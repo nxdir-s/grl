@@ -3,7 +3,6 @@ package domain
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/nxdir-s/grl/internal/core/entity"
 	"github.com/nxdir-s/grl/internal/ports"
 )
@@ -20,9 +19,9 @@ func NewEnvironments(service ports.EnvironmentService, configs ports.Configs) *E
 	}
 }
 
-func (d *Environments) Create(ctx context.Context, name string) (*entity.Environment, error) {
+func (d *Environments) Create(ctx context.Context, id string, name string) (*entity.Environment, error) {
 	env := &entity.Environment{
-		ID:        d.generateID(),
+		ID:        id,
 		Name:      name,
 		Variables: make(map[string]string),
 	}
@@ -52,7 +51,7 @@ func (d *Environments) Delete(ctx context.Context, id string) error {
 		return err
 	}
 
-	if cfg != nil && cfg.ActiveEnvID == id {
+	if cfg.ActiveEnvID == id {
 		cfg.ActiveEnvID = ""
 
 		if err := d.configs.Save(ctx, cfg); err != nil {
@@ -69,7 +68,7 @@ func (d *Environments) GetActive(ctx context.Context) (*entity.Environment, erro
 		return nil, err
 	}
 
-	if cfg == nil || len(cfg.ActiveEnvID) == 0 {
+	if len(cfg.ActiveEnvID) == 0 {
 		return nil, nil
 	}
 
@@ -103,8 +102,4 @@ func (d *Environments) ActiveVars(ctx context.Context) map[string]string {
 	}
 
 	return env.Variables
-}
-
-func (d *Environments) generateID() string {
-	return uuid.New().String()
 }

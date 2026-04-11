@@ -4,7 +4,9 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/google/uuid"
 	"github.com/nxdir-s/grl/internal/core/entity"
+	"github.com/nxdir-s/grl/internal/core/valobj"
 	"github.com/nxdir-s/grl/internal/ports"
 )
 
@@ -15,6 +17,7 @@ const (
 	EnvironmentsDomain string = "environments"
 	FormatterDomain    string = "formatter"
 	ClipboardDomain    string = "clipboard"
+	ConfigsDomain      string = "configs"
 )
 
 type ErrNilDomain struct {
@@ -29,6 +32,12 @@ type ErrNilEnv struct{}
 
 func (e *ErrNilEnv) Error() string {
 	return "environment is nil"
+}
+
+type ErrNilConfig struct{}
+
+func (e *ErrNilConfig) Error() string {
+	return "config is nil"
 }
 
 type ErrNilRequest struct{}
@@ -81,6 +90,94 @@ func (e *ErrListCollections) Error() string {
 	return "failed to list collections: " + e.err.Error()
 }
 
+type ErrCreateEnvironment struct {
+	err error
+}
+
+func (e *ErrCreateEnvironment) Error() string {
+	return "failed to create environment: " + e.err.Error()
+}
+
+type ErrListEnvironments struct {
+	err error
+}
+
+func (e *ErrListEnvironments) Error() string {
+	return "failed to list environments: " + e.err.Error()
+}
+
+type ErrGetEnvironment struct {
+	err error
+}
+
+func (e *ErrGetEnvironment) Error() string {
+	return "failed to get environment: " + e.err.Error()
+}
+
+type ErrSaveEnvironment struct {
+	err error
+}
+
+func (e *ErrSaveEnvironment) Error() string {
+	return "failed to save environment: " + e.err.Error()
+}
+
+type ErrDeleteEnvironment struct {
+	err error
+}
+
+func (e *ErrDeleteEnvironment) Error() string {
+	return "failed to delete environment: " + e.err.Error()
+}
+
+type ErrGetActiveEnvironment struct {
+	err error
+}
+
+func (e *ErrGetActiveEnvironment) Error() string {
+	return "failed to get active environment: " + e.err.Error()
+}
+
+type ErrSetActiveEnvironment struct {
+	err error
+}
+
+func (e *ErrSetActiveEnvironment) Error() string {
+	return "failed to set active environment: " + e.err.Error()
+}
+
+type ErrGetActiveEnvVars struct {
+	err error
+}
+
+func (e *ErrGetActiveEnvVars) Error() string {
+	return "failed to get active env vars: " + e.err.Error()
+}
+
+type ErrGetConfig struct {
+	err error
+}
+
+func (e *ErrGetConfig) Error() string {
+	return "failed to get config: " + e.err.Error()
+}
+
+type ErrSaveConfig struct {
+	err error
+}
+
+func (e *ErrSaveConfig) Error() string {
+	return "failed to save config: " + e.err.Error()
+}
+
+type ErrCopyToClipboard struct {
+	err error
+}
+
+func (e *ErrCopyToClipboard) Error() string {
+	return "failed to copy to clipboard: " + e.err.Error()
+}
+
 type ErrMissingEnvName struct{}
 
 func (e *ErrMissingEnvName) Error() string {
@@ -119,6 +216,12 @@ func WithEnvironments(domain ports.Environments) TUIOpts {
 	}
 }
 
+func WithConfigs(domain ports.Configs) TUIOpts {
+	return func(a *TUIAdapter) {
+		a.configs = domain
+	}
+}
+
 func WithFormatter(domain ports.Formatter) TUIOpts {
 	return func(a *TUIAdapter) {
 		a.formatter = domain
@@ -132,13 +235,15 @@ func WithClipboard(domain ports.Clipboard) TUIOpts {
 }
 
 type TUIAdapter struct {
-	logger       *slog.Logger
+	logger *slog.Logger
+
 	requests     ports.Requests
 	collections  ports.Collections
 	history      ports.History
 	environments ports.Environments
 	formatter    ports.Formatter
 	clipboard    ports.Clipboard
+	configs      ports.Configs
 }
 
 func NewTUIAdapter(logger *slog.Logger, opts ...TUIOpts) *TUIAdapter {
@@ -158,15 +263,19 @@ func (a *TUIAdapter) SendRequest(ctx context.Context, req *entity.Request) (*ent
 		err := &ErrNilDomain{RequestsDomain}
 		a.logger.Error("failed to send request", slog.String("err", err.Error()))
 
-		return nil, err
+		return nil, &ErrSendRequest{err}
 	}
 
 	if req == nil {
-		return nil, &ErrNilRequest{}
+		err := &ErrNilRequest{}
+		a.logger.Error("failed to send request", slog.String("err", err.Error()))
+
+		return nil, &ErrSendRequest{err}
 	}
 
 	resp, err := a.requests.Send(ctx, req)
 	if err != nil {
+		a.logger.Error("failed to send request", slog.String("err", err.Error()))
 		return nil, &ErrSendRequest{err}
 	}
 
@@ -178,18 +287,25 @@ func (a *TUIAdapter) RecordHistory(ctx context.Context, req *entity.Request, res
 		err := &ErrNilDomain{HistoryDomain}
 		a.logger.Error("failed to record history", slog.String("err", err.Error()))
 
-		return err
+		return &ErrRecordHistory{err}
 	}
 
 	if req == nil {
-		return &ErrNilRequest{}
+		err := &ErrNilRequest{}
+		a.logger.Error("failed to record history", slog.String("err", err.Error()))
+
+		return &ErrRecordHistory{err}
 	}
 
 	if resp == nil {
-		return &ErrNilResponse{}
+		err := &ErrNilResponse{}
+		a.logger.Error("failed to record history", slog.String("err", err.Error()))
+
+		return &ErrRecordHistory{err}
 	}
 
 	if err := a.history.Append(ctx, req, resp); err != nil {
+		a.logger.Error("failed to record history", slog.String("err", err.Error()))
 		return &ErrRecordHistory{err}
 	}
 
@@ -201,15 +317,19 @@ func (a *TUIAdapter) GetHistory(ctx context.Context, limit int) ([]entity.Histor
 		err := &ErrNilDomain{HistoryDomain}
 		a.logger.Error("failed to get history", slog.String("err", err.Error()))
 
-		return nil, err
+		return nil, &ErrGetHistory{err}
 	}
 
 	if limit == 0 {
-		return nil, &ErrLimit{}
+		err := &ErrLimit{}
+		a.logger.Error("failed to get history", slog.String("err", err.Error()))
+
+		return nil, &ErrGetHistory{err}
 	}
 
 	history, err := a.history.Load(ctx, limit)
 	if err != nil {
+		a.logger.Error("failed to get history", slog.String("err", err.Error()))
 		return nil, &ErrGetHistory{err}
 	}
 
@@ -221,11 +341,12 @@ func (a *TUIAdapter) ListCollections(ctx context.Context) ([]entity.Collection, 
 		err := &ErrNilDomain{CollectionsDomain}
 		a.logger.Error("failed to list collections", slog.String("err", err.Error()))
 
-		return nil, err
+		return nil, &ErrListCollections{err}
 	}
 
 	collections, err := a.collections.List(ctx)
 	if err != nil {
+		a.logger.Error("failed to list collections", slog.String("err", err.Error()))
 		return nil, &ErrListCollections{err}
 	}
 
@@ -237,16 +358,20 @@ func (a *TUIAdapter) CreateEnvironment(ctx context.Context, name string) (*entit
 		err := &ErrNilDomain{EnvironmentsDomain}
 		a.logger.Error("failed to create environment", slog.String("err", err.Error()))
 
-		return nil, err
+		return nil, &ErrCreateEnvironment{err}
 	}
 
 	if len(name) == 0 {
-		return nil, &ErrMissingEnvName{}
+		err := &ErrMissingEnvName{}
+		a.logger.Error("failed to create environment", slog.String("err", err.Error()))
+
+		return nil, &ErrCreateEnvironment{err}
 	}
 
-	environment, err := a.environments.Create(ctx, name)
+	environment, err := a.environments.Create(ctx, a.generateID(), name)
 	if err != nil {
-		return nil, err
+		a.logger.Error("failed to create environment", slog.String("err", err.Error()))
+		return nil, &ErrCreateEnvironment{err}
 	}
 
 	return environment, nil
@@ -257,12 +382,13 @@ func (a *TUIAdapter) ListEnvironments(ctx context.Context) ([]entity.Environment
 		err := &ErrNilDomain{EnvironmentsDomain}
 		a.logger.Error("failed to list environments", slog.String("err", err.Error()))
 
-		return nil, err
+		return nil, &ErrListEnvironments{err}
 	}
 
 	environments, err := a.environments.List(ctx)
 	if err != nil {
-		return nil, err
+		a.logger.Error("failed to list environments", slog.String("err", err.Error()))
+		return nil, &ErrListEnvironments{err}
 	}
 
 	return environments, nil
@@ -273,16 +399,20 @@ func (a *TUIAdapter) GetEnvironment(ctx context.Context, id string) (*entity.Env
 		err := &ErrNilDomain{EnvironmentsDomain}
 		a.logger.Error("failed to get environment", slog.String("err", err.Error()))
 
-		return nil, err
+		return nil, &ErrGetEnvironment{err}
 	}
 
 	if len(id) == 0 {
-		return nil, &ErrMissingEnvID{}
+		err := &ErrMissingEnvID{}
+		a.logger.Error("failed to get environment", slog.String("err", err.Error()))
+
+		return nil, &ErrGetEnvironment{err}
 	}
 
 	environment, err := a.environments.Get(ctx, id)
 	if err != nil {
-		return nil, err
+		a.logger.Error("failed to get environment", slog.String("err", err.Error()))
+		return nil, &ErrGetEnvironment{err}
 	}
 
 	return environment, nil
@@ -293,11 +423,14 @@ func (a *TUIAdapter) SaveEnvironment(ctx context.Context, env *entity.Environmen
 		err := &ErrNilDomain{EnvironmentsDomain}
 		a.logger.Error("failed to save environment", slog.String("err", err.Error()))
 
-		return err
+		return &ErrSaveEnvironment{err}
 	}
 
 	if env == nil {
-		return &ErrNilEnv{}
+		err := &ErrNilEnv{}
+		a.logger.Error("failed to save environment", slog.String("err", err.Error()))
+
+		return &ErrSaveEnvironment{err}
 	}
 
 	if env.Variables == nil {
@@ -306,7 +439,7 @@ func (a *TUIAdapter) SaveEnvironment(ctx context.Context, env *entity.Environmen
 
 	if err := a.environments.Save(ctx, env); err != nil {
 		a.logger.Error("failed to save environment", slog.String("err", err.Error()))
-		return err
+		return &ErrSaveEnvironment{err}
 	}
 
 	return nil
@@ -317,15 +450,19 @@ func (a *TUIAdapter) DeleteEnvironment(ctx context.Context, id string) error {
 		err := &ErrNilDomain{EnvironmentsDomain}
 		a.logger.Error("failed to delete environment", slog.String("err", err.Error()))
 
-		return err
+		return &ErrDeleteEnvironment{err}
 	}
 
 	if len(id) == 0 {
-		return &ErrMissingEnvID{}
+		err := &ErrMissingEnvID{}
+		a.logger.Error("failed to delete environment", slog.String("err", err.Error()))
+
+		return &ErrDeleteEnvironment{err}
 	}
 
 	if err := a.environments.Delete(ctx, id); err != nil {
-		return err
+		a.logger.Error("failed to delete environment", slog.String("err", err.Error()))
+		return &ErrDeleteEnvironment{err}
 	}
 
 	return nil
@@ -336,12 +473,14 @@ func (a *TUIAdapter) GetActiveEnvironment(ctx context.Context) (*entity.Environm
 		err := &ErrNilDomain{EnvironmentsDomain}
 		a.logger.Error("failed to get active environment", slog.String("err", err.Error()))
 
-		return nil, err
+		return nil, &ErrGetActiveEnvironment{err}
 	}
 
 	env, err := a.environments.GetActive(ctx)
 	if err != nil {
-		return nil, err
+		a.logger.Error("failed to get active environment", slog.String("err", err.Error()))
+
+		return nil, &ErrGetActiveEnvironment{err}
 	}
 
 	return env, nil
@@ -352,15 +491,19 @@ func (a *TUIAdapter) SetActiveEnvironment(ctx context.Context, id string) error 
 		err := &ErrNilDomain{EnvironmentsDomain}
 		a.logger.Error("failed to set active environment", slog.String("err", err.Error()))
 
-		return err
+		return &ErrSetActiveEnvironment{err}
 	}
 
 	if len(id) == 0 {
-		return &ErrMissingEnvID{}
+		err := &ErrMissingEnvID{}
+		a.logger.Error("failed to set active environment", slog.String("err", err.Error()))
+
+		return &ErrSetActiveEnvironment{err}
 	}
 
 	if err := a.environments.SetActive(ctx, id); err != nil {
-		return err
+		a.logger.Error("failed to set active environment", slog.String("err", err.Error()))
+		return &ErrSetActiveEnvironment{err}
 	}
 
 	return nil
@@ -371,10 +514,49 @@ func (a *TUIAdapter) GetActiveEnvVars(ctx context.Context) (map[string]string, e
 		err := &ErrNilDomain{EnvironmentsDomain}
 		a.logger.Error("failed to get active env vars", slog.String("err", err.Error()))
 
-		return map[string]string{}, err
+		return map[string]string{}, &ErrGetActiveEnvVars{err}
 	}
 
 	return a.environments.ActiveVars(ctx), nil
+}
+
+func (a *TUIAdapter) GetConfig(ctx context.Context) *valobj.Config {
+	if a.configs == nil {
+		err := &ErrNilDomain{ConfigsDomain}
+		a.logger.Error("failed to get config", slog.String("err", err.Error()))
+
+		return &valobj.Config{}
+	}
+
+	config, err := a.configs.Get(ctx)
+	if err != nil {
+		a.logger.Error("failed to get config", slog.String("err", err.Error()))
+	}
+
+	return config
+}
+
+func (a *TUIAdapter) SaveConfig(ctx context.Context, cfg *valobj.Config) error {
+	if a.configs == nil {
+		err := &ErrNilDomain{ConfigsDomain}
+		a.logger.Error("failed to save config", slog.String("err", err.Error()))
+
+		return &ErrSaveConfig{err}
+	}
+
+	if cfg == nil {
+		err := &ErrNilConfig{}
+		a.logger.Error("failed to save config", slog.String("err", err.Error()))
+
+		return &ErrSaveConfig{err}
+	}
+
+	if err := a.configs.Save(ctx, cfg); err != nil {
+		a.logger.Error("failed to save config", slog.String("err", err.Error()))
+		return &ErrSaveConfig{err}
+	}
+
+	return nil
 }
 
 func (a *TUIAdapter) ColorizeJSON(s string) string {
@@ -397,12 +579,17 @@ func (a *TUIAdapter) CopyToClipboard(s string) error {
 		err := &ErrNilDomain{ClipboardDomain}
 		a.logger.Error("failed to copy to clipboard", slog.String("err", err.Error()))
 
-		return err
+		return &ErrCopyToClipboard{err}
 	}
 
 	if err := a.clipboard.Copy(s); err != nil {
-		return err
+		a.logger.Error("failed to copy to clipboard", slog.String("err", err.Error()))
+		return &ErrCopyToClipboard{err}
 	}
 
 	return nil
+}
+
+func (a *TUIAdapter) generateID() string {
+	return uuid.New().String()
 }
