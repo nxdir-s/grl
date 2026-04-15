@@ -33,21 +33,24 @@ type Requests struct {
 	service       ports.RequestService
 	environments  ports.Environments
 	substitutions ports.Substitutions
+	auth          ports.Auth
 
 	validMethods []valobj.HTTPMethod
 }
 
-func NewRequests(service ports.RequestService, environments ports.Environments, substitutions ports.Substitutions) *Requests {
+func NewRequests(service ports.RequestService, environments ports.Environments, substitutions ports.Substitutions, auth ports.Auth) *Requests {
 	return &Requests{
 		service:       service,
 		environments:  environments,
 		substitutions: substitutions,
+		auth:          auth,
 		validMethods:  validMethods(),
 	}
 }
 
 func (d *Requests) Send(ctx context.Context, req *entity.Request) (*entity.Response, error) {
 	req = d.substitutions.SubstituteRequest(req, d.environments.ActiveVars(ctx))
+	req = d.auth.Apply(req)
 
 	if err := d.Validate(req); err != nil {
 		return nil, err

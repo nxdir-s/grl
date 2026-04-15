@@ -9,12 +9,14 @@ import (
 type RequestTab int
 
 const (
-	RequestTabHeaders RequestTab = iota
+	RequestTabAuth RequestTab = iota
+	RequestTabHeaders
 	RequestTabParams
 	RequestTabBody
 )
 
 const (
+	RequestTabAuthName    string = "Auth"
 	RequestTabHeadersName string = "Headers"
 	RequestTabParamsName  string = "Params"
 	RequestTabBodyName    string = "Body"
@@ -22,6 +24,8 @@ const (
 
 func (c RequestTab) String() string {
 	switch c {
+	case RequestTabAuth:
+		return RequestTabAuthName
 	case RequestTabHeaders:
 		return RequestTabHeadersName
 	case RequestTabParams:
@@ -63,8 +67,9 @@ type RequestTabs struct {
 
 func NewRequestTabs() RequestTabs {
 	return RequestTabs{
-		active: RequestTabHeaders,
+		active: RequestTabAuth,
 		tabNames: []string{
+			RequestTabAuthName,
 			RequestTabHeadersName,
 			RequestTabParamsName,
 			RequestTabBodyName,

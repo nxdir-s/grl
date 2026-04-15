@@ -84,3 +84,7 @@ type Clipboard interface {
 type Formatter interface {
 	ColorizeJSON(s string) string
 }
+
+type Auth interface {
+	Apply(req *entity.Request) *entity.Request
+}

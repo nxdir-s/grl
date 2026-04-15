@@ -27,6 +27,7 @@ func defaultBuilderKeys() RequestBuilderKeyMap {
 
 type RequestBuilder struct {
 	tabs    RequestTabs
+	auth    AuthEditor
 	headers KVEditor
 	params  KVEditor
 	body    RequestBodyEditor
@@ -41,6 +42,7 @@ type RequestBuilder struct {
 func NewRequestBuilder() RequestBuilder {
 	return RequestBuilder{
 		tabs:    NewRequestTabs(),
+		auth:    NewAuthEditor(),
 		headers: NewKVEditor("Header name", "Header value"),
 		params:  NewKVEditor("Parameter name", "Parameter value"),
 		body:    NewRequestBodyEditor(),
@@ -55,6 +57,7 @@ func (c *RequestBuilder) Focus() tea.Cmd {
 
 func (c *RequestBuilder) Blur() {
 	c.focused = false
+	c.auth.Blur()
 	c.headers.Blur()
 	c.params.Blur()
 	c.body.Blur()
@@ -69,10 +72,19 @@ func (c *RequestBuilder) SetSize(width, height int) {
 		contentHeight = 1
 	}
 
+	c.auth.SetWidth(width)
 	c.headers.SetWidth(width)
 	c.params.SetWidth(width)
 	c.body.SetWidth(width)
 	c.body.SetHeight(contentHeight)
+}
+
+func (c RequestBuilder) GetAuth() valobj.Auth {
+	return c.auth.ToAuth()
+}
+
+func (c *RequestBuilder) SetAuth(auth valobj.Auth) {
+	c.auth.SetAuth(auth)
 }
 
 func (c RequestBuilder) GetHeaders() []valobj.Header {
@@ -114,6 +126,8 @@ func (c RequestBuilder) Update(msg tea.Msg) (RequestBuilder, tea.Cmd) {
 
 	var cmd tea.Cmd
 	switch c.tabs.Active() {
+	case RequestTabAuth:
+		c.auth, cmd = c.auth.Update(msg)
 	case RequestTabHeaders:
 		c.headers, cmd = c.headers.Update(msg)
 	case RequestTabParams:
@@ -130,6 +144,8 @@ func (c RequestBuilder) View() string {
 
 	var content string
 	switch c.tabs.Active() {
+	case RequestTabAuth:
+		content = c.auth.View()
 	case RequestTabHeaders:
 		content = c.headers.View()
 	case RequestTabParams:
@@ -143,6 +159,8 @@ func (c RequestBuilder) View() string {
 
 func (c *RequestBuilder) focusActiveTab() tea.Cmd {
 	switch c.tabs.Active() {
+	case RequestTabAuth:
+		return c.auth.Focus()
 	case RequestTabHeaders:
 		return c.headers.Focus()
 	case RequestTabParams:
@@ -155,6 +173,7 @@ func (c *RequestBuilder) focusActiveTab() tea.Cmd {
 }
 
 func (c *RequestBuilder) blurActiveTab() {
+	c.auth.Blur()
 	c.headers.Blur()
 	c.params.Blur()
 	c.body.Blur()

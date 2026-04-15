@@ -17,6 +17,7 @@ type Request struct {
 	Name    string              `json:"name"`
 	Method  valobj.HTTPMethod   `json:"method"`
 	URL     string              `json:"url"`
+	Auth    valobj.Auth         `json:"auth,omitempty"`
 	Headers []valobj.Header     `json:"headers,omitempty"`
 	Params  []valobj.QueryParam `json:"params,omitempty"`
 	Body    string              `json:"body,omitempty"`

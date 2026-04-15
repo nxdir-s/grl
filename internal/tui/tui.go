@@ -657,6 +657,7 @@ func (t *TUI) sendRequest() tea.Cmd {
 		Headers: t.builder.GetHeaders(),
 		Params:  t.builder.GetParams(),
 		Body:    t.builder.GetBody(),
+		Auth:    t.builder.GetAuth(),
 	}
 
 	return func() tea.Msg {

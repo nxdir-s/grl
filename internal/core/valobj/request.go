@@ -29,8 +29,8 @@ const (
 	MethodOptions HTTPMethod = "OPTIONS"
 )
 
-func (m HTTPMethod) String() string {
-	return string(m)
+func (s HTTPMethod) String() string {
+	return string(s)
 }
 
 type Timing struct {
@@ -41,6 +41,6 @@ type Timing struct {
 	Total        time.Duration `json:"total"`
 }
 
-func (t Timing) String() string {
-	return strconv.Itoa(int(t.Total.Milliseconds())) + "ms"
+func (s Timing) String() string {
+	return strconv.Itoa(int(s.Total.Milliseconds())) + "ms"
 }

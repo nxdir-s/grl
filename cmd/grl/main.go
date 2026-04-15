@@ -74,6 +74,7 @@ func main() {
 	var substitutions ports.Substitutions
 	var formatter ports.Formatter
 	var clipboard ports.Clipboard
+	var auth ports.Auth
 
 	var adapter ports.TUI
 
@@ -92,6 +93,7 @@ func main() {
 	environmentService = service.NewEnvironmentService(storage)
 	configService = service.NewConfigService(storage)
 
+	auth = domain.NewAuth()
 	formatter = domain.NewFormatter()
 	clipboard = domain.NewClipboard()
 	configs = domain.NewConfigs(configService)
@@ -99,7 +101,7 @@ func main() {
 	substitutions = domain.NewSubstitutions()
 	collections = domain.NewCollections(collectionService)
 	history = domain.NewHistory(historyService)
-	requests = domain.NewRequests(requestService, environments, substitutions)
+	requests = domain.NewRequests(requestService, environments, substitutions, auth)
 
 	adapter = primary.NewTUIAdapter(logger,
 		primary.WithRequests(requests),

@@ -45,6 +45,15 @@ func (d *Substitutions) SubstituteRequest(req *entity.Request, vars map[string]s
 		Headers: make([]valobj.Header, 0, len(req.Headers)),
 		Params:  make([]valobj.QueryParam, 0, len(req.Params)),
 		Body:    d.Substitute(req.Body, vars),
+		Auth: valobj.Auth{
+			Type:        req.Auth.Type,
+			Username:    d.Substitute(req.Auth.Username, vars),
+			Password:    d.Substitute(req.Auth.Password, vars),
+			Token:       d.Substitute(req.Auth.Token, vars),
+			APIKeyName:  d.Substitute(req.Auth.APIKeyName, vars),
+			APIKeyValue: d.Substitute(req.Auth.APIKeyValue, vars),
+			APIKeyIn:    req.Auth.APIKeyIn,
+		},
 	}
 
 	for i := range req.Headers {
