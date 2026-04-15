@@ -87,6 +87,18 @@ func (c *RequestBuilder) SetAuth(auth valobj.Auth) {
 	c.auth.SetAuth(auth)
 }
 
+func (c *RequestBuilder) SetHeaders(headers []valobj.Header) {
+	c.headers.SetHeaders(headers)
+}
+
+func (c *RequestBuilder) SetParams(params []valobj.QueryParam) {
+	c.params.SetParams(params)
+}
+
+func (c *RequestBuilder) SetBody(s string) {
+	c.body.SetValue(s)
+}
+
 func (c RequestBuilder) GetHeaders() []valobj.Header {
 	return c.headers.Headers()
 }
@@ -216,6 +228,10 @@ func (c *RequestBodyEditor) SetHeight(h int) {
 
 func (c RequestBodyEditor) Value() string {
 	return c.textarea.Value()
+}
+
+func (c *RequestBodyEditor) SetValue(s string) {
+	c.textarea.SetValue(s)
 }
 
 func (c RequestBodyEditor) Update(msg tea.Msg) (RequestBodyEditor, tea.Cmd) {

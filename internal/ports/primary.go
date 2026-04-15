@@ -13,7 +13,9 @@ type TUI interface {
 	RecordHistory(ctx context.Context, req *entity.Request, resp *entity.Response) error
 	GetHistory(ctx context.Context, limit int) ([]entity.HistoryEntry, error)
 
+	CreateCollection(ctx context.Context, name string, req *entity.Request) ([]entity.Collection, error)
 	ListCollections(ctx context.Context) ([]entity.Collection, error)
+	SaveRequestToCollection(ctx context.Context, req *entity.Request, name string, collectionID string) ([]entity.Collection, error)
 
 	CreateEnvironment(ctx context.Context, name string) (*entity.Environment, error)
 	ListEnvironments(ctx context.Context) ([]entity.Environment, error)

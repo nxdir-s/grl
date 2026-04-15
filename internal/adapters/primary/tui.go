@@ -66,6 +66,14 @@ func (e *ErrSendRequest) Error() string {
 	return "failed to send request: " + e.err.Error()
 }
 
+type ErrSaveRequestToCollection struct {
+	err error
+}
+
+func (e *ErrSaveRequestToCollection) Error() string {
+	return "failed to save request to collection: " + e.err.Error()
+}
+
 type ErrRecordHistory struct {
 	err error
 }
@@ -80,6 +88,14 @@ type ErrGetHistory struct {
 
 func (e *ErrGetHistory) Error() string {
 	return "failed to get history: " + e.err.Error()
+}
+
+type ErrCreateCollection struct {
+	err error
+}
+
+func (e *ErrCreateCollection) Error() string {
+	return "failed to create collection: " + e.err.Error()
 }
 
 type ErrListCollections struct {
@@ -282,6 +298,30 @@ func (a *TUIAdapter) SendRequest(ctx context.Context, req *entity.Request) (*ent
 	return resp, nil
 }
 
+func (a *TUIAdapter) SaveRequestToCollection(ctx context.Context, req *entity.Request, name string, collectionID string) ([]entity.Collection, error) {
+	if a.collections == nil {
+		err := &ErrNilDomain{CollectionsDomain}
+		a.logger.Error("failed to save request to collection",
+			slog.String("name", name),
+			slog.String("collection_id", collectionID),
+			slog.String("err", err.Error()),
+		)
+
+		return nil, &ErrSaveRequestToCollection{err}
+	}
+
+	if err := a.collections.AddRequest(ctx, collectionID, req); err != nil {
+		return nil, &ErrSaveRequestToCollection{err}
+	}
+
+	collections, err := a.collections.List(ctx)
+	if err != nil {
+		return nil, &ErrSaveRequestToCollection{err}
+	}
+
+	return collections, nil
+}
+
 func (a *TUIAdapter) RecordHistory(ctx context.Context, req *entity.Request, resp *entity.Response) error {
 	if a.history == nil {
 		err := &ErrNilDomain{HistoryDomain}
@@ -334,6 +374,28 @@ func (a *TUIAdapter) GetHistory(ctx context.Context, limit int) ([]entity.Histor
 	}
 
 	return history, nil
+}
+
+func (a *TUIAdapter) CreateCollection(ctx context.Context, name string, req *entity.Request) ([]entity.Collection, error) {
+	if a.collections == nil {
+		err := &ErrNilDomain{CollectionsDomain}
+		a.logger.Error("failed to create collection", slog.String("err", err.Error()))
+
+		return nil, &ErrCreateCollection{err}
+	}
+
+	if _, err := a.collections.Create(ctx, name, req); err != nil {
+		a.logger.Error("failed to create collection", slog.String("err", err.Error()))
+		return nil, &ErrCreateCollection{err}
+	}
+
+	collections, err := a.collections.List(ctx)
+	if err != nil {
+		a.logger.Error("failed to create collection", slog.String("err", err.Error()))
+		return nil, &ErrCreateCollection{err}
+	}
+
+	return collections, nil
 }
 
 func (a *TUIAdapter) ListCollections(ctx context.Context) ([]entity.Collection, error) {

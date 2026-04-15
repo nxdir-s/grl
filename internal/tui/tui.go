@@ -21,6 +21,7 @@ type KeyMap struct {
 	EnvModal    key.Binding
 	ConfigModal key.Binding
 	Copy        key.Binding
+	SaveModal   key.Binding
 	Quit        key.Binding
 }
 
@@ -50,6 +51,10 @@ func defaultKeyMap() KeyMap {
 			key.WithKeys("ctrl+y"),
 			key.WithHelp("ctrl+y", "copy"),
 		),
+		SaveModal: key.NewBinding(
+			key.WithKeys("ctrl+w"),
+			key.WithHelp("ctrl+w", "save request"),
+		),
 		Quit: key.NewBinding(
 			key.WithKeys("ctrl+c"),
 			key.WithHelp("ctrl+c", "quit"),
@@ -65,6 +70,7 @@ func (m KeyMap) ShortHelp() []key.Binding {
 		m.EnvModal,
 		m.ConfigModal,
 		m.Copy,
+		m.SaveModal,
 		m.Quit,
 	}
 }
@@ -78,6 +84,7 @@ func (m KeyMap) FullHelp() [][]key.Binding {
 			m.EnvModal,
 			m.ConfigModal,
 			m.Copy,
+			m.SaveModal,
 			m.Quit,
 		},
 	}
@@ -125,6 +132,9 @@ type TUI struct {
 	statusBar   components.StatusBar
 	envModal    components.EnvModal
 	configModal components.ConfigModal
+	saveModal   components.SaveModal
+
+	collections []entity.Collection
 
 	focus  FocusPanel
 	keys   KeyMap
@@ -163,6 +173,8 @@ func New(adapter ports.TUI, opts ...TUIOpts) *TUI {
 		statusBar:    components.NewStatusBar(),
 		envModal:     components.NewEnvModal(),
 		configModal:  components.NewConfigModal(),
+		saveModal:    components.NewSaveModal(),
+		collections:  make([]entity.Collection, 0),
 		focus:        FocusURLBar,
 		keys:         defaultKeyMap(),
 		panelCount:   PanelCount,
@@ -232,6 +244,12 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return t, cmd
 		}
 
+		if t.saveModal.IsOpen() {
+			var cmd tea.Cmd
+			t.saveModal, cmd = t.saveModal.Update(msg)
+			return t, cmd
+		}
+
 		switch {
 		case key.Matches(msg, t.keys.Quit):
 			return t, tea.Quit
@@ -240,6 +258,8 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return t, t.loadEnvironments()
 		case key.Matches(msg, t.keys.ConfigModal):
 			return t, t.openConfigModal()
+		case key.Matches(msg, t.keys.SaveModal):
+			return t, t.openSaveModal()
 		case key.Matches(msg, t.keys.CycleMethod):
 			t.method.Next()
 			return t, nil
@@ -312,6 +332,25 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case components.ErrorMsg:
 		t.err = msg.Err
 		return t, nil
+	case components.SaveToCollectionMsg:
+		return t, t.saveRequestToCollection(msg.CollectionID, msg.RequestName)
+
+	case components.CreateAndSaveMsg:
+		return t, t.createAndSaveRequest(msg.CollectionName, msg.RequestName)
+
+	case components.CloseSaveModalMsg:
+		return t, nil
+
+	case components.RequestSavedMsg:
+		t.updateSidebarCollections(components.CollectionsUpdatedMsg{
+			Collections: msg.Collections,
+		})
+
+		t.flashMsg = msg.FlashText
+
+		return t, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
+			return components.ClearFlashMsg{}
+		})
 	}
 
 	if t.envModal.IsOpen() {
@@ -323,6 +362,12 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if t.configModal.IsOpen() {
 		var cmd tea.Cmd
 		t.configModal, cmd = t.configModal.Update(msg)
+		return t, cmd
+	}
+
+	if t.saveModal.IsOpen() {
+		var cmd tea.Cmd
+		t.saveModal, cmd = t.saveModal.Update(msg)
 		return t, cmd
 	}
 
@@ -415,7 +460,12 @@ func (t *TUI) View() tea.View {
 			lipgloss.Center, lipgloss.Center,
 			t.configModal.View(),
 		)
-
+	case t.saveModal.IsOpen():
+		body = lipgloss.Place(
+			t.width, mainHeight,
+			lipgloss.Center, lipgloss.Center,
+			t.saveModal.View(),
+		)
 	}
 
 	view := lipgloss.JoinVertical(lipgloss.Left, body, helpView)
@@ -906,6 +956,8 @@ func (t *TUI) updateSidebarFromMsg(msg components.HistoryUpdatedMsg) {
 		collections = make([]entity.Collection, 0)
 	}
 
+	t.collections = collections
+
 	t.sidebar.SetData(msg.History, collections)
 }
 
@@ -915,14 +967,71 @@ func (t *TUI) updateSidebarCollections(msg components.CollectionsUpdatedMsg) {
 		history = make([]entity.HistoryEntry, 0)
 	}
 
+	t.collections = msg.Collections
+
 	t.sidebar.SetData(history, msg.Collections)
 }
 
 func (t *TUI) loadRequest(req *entity.Request) {
-	for req.Method != t.method.Current() {
-		t.method.Next()
-	}
-
+	t.method.SetCurrent(req.Method)
 	t.urlBar.SetValue(req.URL)
-	// TODO: Load headers, params, body into the builder in future iteration
+	t.builder.SetHeaders(req.Headers)
+	t.builder.SetParams(req.Params)
+	t.builder.SetBody(req.Body)
+	t.builder.SetAuth(req.Auth)
+}
+
+func (t *TUI) openSaveModal() tea.Cmd {
+	defaultName := t.method.Current().String() + " " + t.urlBar.Value()
+	defaultName = strings.TrimSpace(defaultName)
+
+	return t.saveModal.Open(t.collections, defaultName)
+}
+
+func (t *TUI) snapshotRequest(name string) *entity.Request {
+	return &entity.Request{
+		Name:    name,
+		Method:  t.method.Current(),
+		URL:     t.urlBar.Value(),
+		Headers: t.builder.GetHeaders(),
+		Params:  t.builder.GetParams(),
+		Body:    t.builder.GetBody(),
+		Auth:    t.builder.GetAuth(),
+	}
+}
+
+func (t *TUI) saveRequestToCollection(collectionID string, requestName string) tea.Cmd {
+	req := t.snapshotRequest(requestName)
+
+	return func() tea.Msg {
+		collections, err := t.adapter.SaveRequestToCollection(t.ctx, req, requestName, collectionID)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.RequestSavedMsg{
+			Collections: collections,
+			FlashText:   "saved to collection",
+		}
+	}
+}
+
+func (t *TUI) createAndSaveRequest(collectionName, requestName string) tea.Cmd {
+	req := t.snapshotRequest(requestName)
+
+	return func() tea.Msg {
+		collections, err := t.adapter.CreateCollection(t.ctx, collectionName, req)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.RequestSavedMsg{
+			Collections: collections,
+			FlashText:   "saved to new collection",
+		}
+	}
 }

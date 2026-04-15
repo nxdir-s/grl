@@ -146,6 +146,27 @@ func (c KVEditor) Headers() []valobj.Header {
 	return headers
 }
 
+func (c *KVEditor) SetHeaders(headers []valobj.Header) {
+	c.rows = make([]KVRow, 0, len(headers))
+
+	for i := range headers {
+		row := NewKVRow(c.keyPlaceholder, c.valPlaceholder)
+
+		row.key.SetValue(headers[i].Key)
+		row.value.SetValue(headers[i].Value)
+		row.enabled = headers[i].Enabled
+
+		c.rows = append(c.rows, row)
+	}
+
+	if len(c.rows) == 0 {
+		c.addRow()
+	}
+
+	c.cursor = 0
+	c.focusedField = KVFieldKey
+}
+
 func (c KVEditor) QueryParams() []valobj.QueryParam {
 	var params []valobj.QueryParam
 
@@ -163,6 +184,27 @@ func (c KVEditor) QueryParams() []valobj.QueryParam {
 	}
 
 	return params
+}
+
+func (c *KVEditor) SetParams(params []valobj.QueryParam) {
+	c.rows = make([]KVRow, 0, len(params))
+
+	for i := range params {
+		row := NewKVRow(c.keyPlaceholder, c.valPlaceholder)
+
+		row.key.SetValue(params[i].Key)
+		row.value.SetValue(params[i].Value)
+		row.enabled = params[i].Enabled
+
+		c.rows = append(c.rows, row)
+	}
+
+	if len(c.rows) == 0 {
+		c.addRow()
+	}
+
+	c.cursor = 0
+	c.focusedField = KVFieldKey
 }
 
 func (c KVEditor) Update(msg tea.Msg) (KVEditor, tea.Cmd) {

@@ -18,7 +18,7 @@ type RequestService interface {
 }
 
 type Collections interface {
-	Create(ctx context.Context, name string) (*entity.Collection, error)
+	Create(ctx context.Context, name string, req *entity.Request) (*entity.Collection, error)
 	List(ctx context.Context) ([]entity.Collection, error)
 	Delete(ctx context.Context, id string) error
 

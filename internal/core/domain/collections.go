@@ -24,7 +24,7 @@ func NewCollections(service ports.CollectionService) *Collections {
 	}
 }
 
-func (d *Collections) Create(ctx context.Context, name string) (*entity.Collection, error) {
+func (d *Collections) Create(ctx context.Context, name string, req *entity.Request) (*entity.Collection, error) {
 	collection := &entity.Collection{
 		ID:   d.generateID(),
 		Name: name,
@@ -32,6 +32,12 @@ func (d *Collections) Create(ctx context.Context, name string) (*entity.Collecti
 
 	if err := d.service.Save(ctx, collection); err != nil {
 		return nil, err
+	}
+
+	if req != nil {
+		if err := d.AddRequest(ctx, collection.ID, req); err != nil {
+			return nil, err
+		}
 	}
 
 	return collection, nil

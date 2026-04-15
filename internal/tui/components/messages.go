@@ -26,6 +26,19 @@ type CollectionsUpdatedMsg struct {
 
 type SaveToCollectionMsg struct {
 	CollectionID string
+	RequestName  string
+}
+
+type CreateAndSaveMsg struct {
+	CollectionName string
+	RequestName    string
+}
+
+type CloseSaveModalMsg struct{}
+
+type RequestSavedMsg struct {
+	Collections []entity.Collection
+	FlashText   string
 }
 
 type ErrorMsg struct {
