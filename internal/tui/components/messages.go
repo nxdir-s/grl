@@ -63,3 +63,21 @@ type ClearFlashMsg struct{}
 type ConfigUpdatedMsg struct {
 	Cfg *valobj.Config
 }
+
+type RenameCollectionMsg struct {
+	ID      string
+	NewName string
+}
+
+type DeleteCollectionMsg struct {
+	ID string
+}
+
+type RemoveRequestMsg struct {
+	CollectionID string
+	RequestID    string
+}
+
+type DeleteHistoryEntryMsg struct {
+	EntryID string
+}

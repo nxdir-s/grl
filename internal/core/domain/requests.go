@@ -44,7 +44,15 @@ func NewRequests(service ports.RequestService, environments ports.Environments, 
 		environments:  environments,
 		substitutions: substitutions,
 		auth:          auth,
-		validMethods:  validMethods(),
+		validMethods: []valobj.HTTPMethod{
+			valobj.MethodGet,
+			valobj.MethodPost,
+			valobj.MethodPut,
+			valobj.MethodDelete,
+			valobj.MethodPatch,
+			valobj.MethodHead,
+			valobj.MethodOptions,
+		},
 	}
 }
 
@@ -115,16 +123,4 @@ func (d *Requests) validMethod(method valobj.HTTPMethod) bool {
 	}
 
 	return false
-}
-
-func validMethods() []valobj.HTTPMethod {
-	return []valobj.HTTPMethod{
-		valobj.MethodGet,
-		valobj.MethodPost,
-		valobj.MethodPut,
-		valobj.MethodDelete,
-		valobj.MethodPatch,
-		valobj.MethodHead,
-		valobj.MethodOptions,
-	}
 }

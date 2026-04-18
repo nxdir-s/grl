@@ -52,6 +52,12 @@ func (e *ErrNilResponse) Error() string {
 	return "response is nil"
 }
 
+type ErrID struct{}
+
+func (e *ErrID) Error() string {
+	return "missing id"
+}
+
 type ErrLimit struct{}
 
 func (e *ErrLimit) Error() string {
@@ -90,6 +96,14 @@ func (e *ErrGetHistory) Error() string {
 	return "failed to get history: " + e.err.Error()
 }
 
+type ErrDeleteHistoryEntry struct {
+	err error
+}
+
+func (e *ErrDeleteHistoryEntry) Error() string {
+	return "failed to delete history entry: " + e.err.Error()
+}
+
 type ErrCreateCollection struct {
 	err error
 }
@@ -98,12 +112,36 @@ func (e *ErrCreateCollection) Error() string {
 	return "failed to create collection: " + e.err.Error()
 }
 
+type ErrDeleteCollection struct {
+	err error
+}
+
+func (e *ErrDeleteCollection) Error() string {
+	return "failed to delete collection: " + e.err.Error()
+}
+
+type ErrRenameCollection struct {
+	err error
+}
+
+func (e *ErrRenameCollection) Error() string {
+	return "failed to rename collection: " + e.err.Error()
+}
+
 type ErrListCollections struct {
 	err error
 }
 
 func (e *ErrListCollections) Error() string {
 	return "failed to list collections: " + e.err.Error()
+}
+
+type ErrRemoveRequest struct {
+	err error
+}
+
+func (e *ErrRemoveRequest) Error() string {
+	return "failed to remove request from collection: " + e.err.Error()
 }
 
 type ErrCreateEnvironment struct {
@@ -376,6 +414,33 @@ func (a *TUIAdapter) GetHistory(ctx context.Context, limit int) ([]entity.Histor
 	return history, nil
 }
 
+func (a *TUIAdapter) DeleteHistoryEntry(ctx context.Context, id string) error {
+	if a.history == nil {
+		err := &ErrNilDomain{HistoryDomain}
+		a.logger.Error("failed to delete history entry", slog.String("err", err.Error()))
+
+		return &ErrDeleteHistoryEntry{err}
+	}
+
+	if len(id) == 0 {
+		err := &ErrID{}
+		a.logger.Error("failed to delete history entry", slog.String("err", err.Error()))
+
+		return &ErrDeleteHistoryEntry{err}
+	}
+
+	if err := a.history.DeleteEntry(ctx, id); err != nil {
+		a.logger.Error("failed to delete history entry",
+			slog.String("id", id),
+			slog.String("err", err.Error()),
+		)
+
+		return &ErrDeleteHistoryEntry{err}
+	}
+
+	return nil
+}
+
 func (a *TUIAdapter) CreateCollection(ctx context.Context, name string, req *entity.Request) ([]entity.Collection, error) {
 	if a.collections == nil {
 		err := &ErrNilDomain{CollectionsDomain}
@@ -398,6 +463,50 @@ func (a *TUIAdapter) CreateCollection(ctx context.Context, name string, req *ent
 	return collections, nil
 }
 
+func (a *TUIAdapter) DeleteCollection(ctx context.Context, id string) ([]entity.Collection, error) {
+	if a.collections == nil {
+		err := &ErrNilDomain{CollectionsDomain}
+		a.logger.Error("failed to delete collection", slog.String("err", err.Error()))
+
+		return nil, &ErrDeleteCollection{err}
+	}
+
+	if err := a.collections.Delete(ctx, id); err != nil {
+		a.logger.Error("failed to delete collection", slog.String("err", err.Error()))
+		return nil, &ErrDeleteCollection{err}
+	}
+
+	collections, err := a.collections.List(ctx)
+	if err != nil {
+		a.logger.Error("failed to delete collection", slog.String("err", err.Error()))
+		return nil, &ErrDeleteCollection{err}
+	}
+
+	return collections, nil
+}
+
+func (a *TUIAdapter) RenameCollection(ctx context.Context, id string, name string) ([]entity.Collection, error) {
+	if a.collections == nil {
+		err := &ErrNilDomain{CollectionsDomain}
+		a.logger.Error("failed to rename collection", slog.String("err", err.Error()))
+
+		return nil, &ErrRenameCollection{err}
+	}
+
+	if err := a.collections.Rename(ctx, id, name); err != nil {
+		a.logger.Error("failed to rename collection", slog.String("err", err.Error()))
+		return nil, &ErrRenameCollection{err}
+	}
+
+	collections, err := a.collections.List(ctx)
+	if err != nil {
+		a.logger.Error("failed to rename collection", slog.String("err", err.Error()))
+		return nil, &ErrRenameCollection{err}
+	}
+
+	return collections, nil
+}
+
 func (a *TUIAdapter) ListCollections(ctx context.Context) ([]entity.Collection, error) {
 	if a.collections == nil {
 		err := &ErrNilDomain{CollectionsDomain}
@@ -410,6 +519,42 @@ func (a *TUIAdapter) ListCollections(ctx context.Context) ([]entity.Collection, 
 	if err != nil {
 		a.logger.Error("failed to list collections", slog.String("err", err.Error()))
 		return nil, &ErrListCollections{err}
+	}
+
+	return collections, nil
+}
+
+func (a *TUIAdapter) RemoveRequest(ctx context.Context, collectionId string, requestId string) ([]entity.Collection, error) {
+	if a.collections == nil {
+		err := &ErrNilDomain{CollectionsDomain}
+		a.logger.Error("failed to remove request from collection",
+			slog.String("collection_id", collectionId),
+			slog.String("request_id", requestId),
+			slog.String("err", err.Error()),
+		)
+
+		return nil, &ErrRemoveRequest{err}
+	}
+
+	if err := a.collections.RemoveRequest(ctx, collectionId, requestId); err != nil {
+		a.logger.Error("failed to remove request from collection",
+			slog.String("collection_id", collectionId),
+			slog.String("request_id", requestId),
+			slog.String("err", err.Error()),
+		)
+
+		return nil, &ErrRemoveRequest{err}
+	}
+
+	collections, err := a.collections.List(ctx)
+	if err != nil {
+		a.logger.Error("failed to remove request from collection",
+			slog.String("collection_id", collectionId),
+			slog.String("request_id", requestId),
+			slog.String("err", err.Error()),
+		)
+
+		return nil, &ErrRemoveRequest{err}
 	}
 
 	return collections, nil

@@ -40,13 +40,34 @@ func (d *History) Append(ctx context.Context, req *entity.Request, resp *entity.
 		return err
 	}
 
-	history = append(history, *entity.NewHistoryEntry(req, resp))
+	history = append(history, entity.NewHistoryEntry(req, resp))
 
 	if len(history) > 100 {
 		history = history[len(history)-100:]
 	}
 
 	if err := d.service.Save(ctx, history); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *History) DeleteEntry(ctx context.Context, id string) error {
+	history, err := d.Load(ctx, 0)
+	if err != nil {
+		return err
+	}
+
+	out := history[:0]
+
+	for i := range history {
+		if history[i].ID != id {
+			out = append(out, history[i])
+		}
+	}
+
+	if err := d.service.Save(ctx, out); err != nil {
 		return err
 	}
 

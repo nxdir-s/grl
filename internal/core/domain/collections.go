@@ -43,6 +43,21 @@ func (d *Collections) Create(ctx context.Context, name string, req *entity.Reque
 	return collection, nil
 }
 
+func (d *Collections) Rename(ctx context.Context, id string, name string) error {
+	collection, err := d.service.Load(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	collection.Name = name
+
+	if err := d.service.Save(ctx, collection); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (d *Collections) List(ctx context.Context) ([]entity.Collection, error) {
 	return d.service.List(ctx)
 }
@@ -51,8 +66,8 @@ func (d *Collections) Delete(ctx context.Context, id string) error {
 	return d.service.Delete(ctx, id)
 }
 
-func (d *Collections) AddRequest(ctx context.Context, collectionID string, req *entity.Request) error {
-	collection, err := d.service.Load(ctx, collectionID)
+func (d *Collections) AddRequest(ctx context.Context, id string, req *entity.Request) error {
+	collection, err := d.service.Load(ctx, id)
 	if err != nil {
 		return err
 	}

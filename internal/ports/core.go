@@ -21,8 +21,9 @@ type Collections interface {
 	Create(ctx context.Context, name string, req *entity.Request) (*entity.Collection, error)
 	List(ctx context.Context) ([]entity.Collection, error)
 	Delete(ctx context.Context, id string) error
+	Rename(ctx context.Context, id string, name string) error
 
-	AddRequest(ctx context.Context, collectionID string, req *entity.Request) error
+	AddRequest(ctx context.Context, id string, req *entity.Request) error
 	RemoveRequest(ctx context.Context, collectionID string, requestID string) error
 }
 
@@ -36,6 +37,7 @@ type CollectionService interface {
 type History interface {
 	Load(ctx context.Context, limit int) ([]entity.HistoryEntry, error)
 	Append(ctx context.Context, req *entity.Request, resp *entity.Response) error
+	DeleteEntry(ctx context.Context, id string) error
 }
 
 type HistoryService interface {

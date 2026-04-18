@@ -321,6 +321,14 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case components.LoadRequestMsg:
 		t.loadRequest(msg.Request)
 		return t, nil
+	case components.RenameCollectionMsg:
+		return t, t.renameCollection(msg.ID, msg.NewName)
+	case components.DeleteCollectionMsg:
+		return t, t.deleteCollectionCmd(msg.ID)
+	case components.RemoveRequestMsg:
+		return t, t.removeRequestCmd(msg.CollectionID, msg.RequestID)
+	case components.DeleteHistoryEntryMsg:
+		return t, t.deleteHistoryEntryCmd(msg.EntryID)
 	case components.FlashMsg:
 		t.flashMsg = msg.Text
 		return t, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
@@ -711,7 +719,10 @@ func (t *TUI) sendRequest() tea.Cmd {
 	}
 
 	return func() tea.Msg {
-		resp, err := t.adapter.SendRequest(t.ctx, req)
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		resp, err := t.adapter.SendRequest(ctx, req)
 		if err != nil {
 			return components.RequestErrorMsg{
 				Err: err,
@@ -727,13 +738,16 @@ func (t *TUI) sendRequest() tea.Cmd {
 
 func (t *TUI) recordHistory(req *entity.Request, resp *entity.Response) tea.Cmd {
 	return func() tea.Msg {
-		if err := t.adapter.RecordHistory(t.ctx, req, resp); err != nil {
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		if err := t.adapter.RecordHistory(ctx, req, resp); err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		history, err := t.adapter.GetHistory(t.ctx, 50)
+		history, err := t.adapter.GetHistory(ctx, 50)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
@@ -748,14 +762,17 @@ func (t *TUI) recordHistory(req *entity.Request, resp *entity.Response) tea.Cmd 
 
 func (t *TUI) loadSidebarData() tea.Cmd {
 	return func() tea.Msg {
-		history, err := t.adapter.GetHistory(t.ctx, 50)
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		history, err := t.adapter.GetHistory(ctx, 50)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		collections, err := t.adapter.ListCollections(t.ctx)
+		collections, err := t.adapter.ListCollections(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
@@ -772,20 +789,29 @@ func (t *TUI) loadSidebarData() tea.Cmd {
 
 func (t *TUI) loadConfig() tea.Cmd {
 	return func() tea.Msg {
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
 		return components.ConfigUpdatedMsg{
-			Cfg: t.adapter.GetConfig(t.ctx),
+			Cfg: t.adapter.GetConfig(ctx),
 		}
 	}
 }
 
 func (t *TUI) openConfigModal() tea.Cmd {
-	return t.configModal.Open(t.adapter.GetConfig(t.ctx))
+	ctx, cancel := context.WithCancel(t.ctx)
+	defer cancel()
+
+	return t.configModal.Open(t.adapter.GetConfig(ctx))
 }
 
 func (t *TUI) saveConfig(cfg *valobj.Config) tea.Cmd {
 	return tea.Batch(
 		func() tea.Msg {
-			if err := t.adapter.SaveConfig(t.ctx, cfg); err != nil {
+			ctx, cancel := context.WithCancel(t.ctx)
+			defer cancel()
+
+			if err := t.adapter.SaveConfig(ctx, cfg); err != nil {
 				return components.ErrorMsg{
 					Err: err,
 				}
@@ -813,14 +839,17 @@ func (t *TUI) applyConfig(cfg *valobj.Config) {
 
 func (t *TUI) loadEnvironments() tea.Cmd {
 	return func() tea.Msg {
-		envs, err := t.adapter.ListEnvironments(t.ctx)
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		envs, err := t.adapter.ListEnvironments(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		active, err := t.adapter.GetActiveEnvironment(t.ctx)
+		active, err := t.adapter.GetActiveEnvironment(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
@@ -836,20 +865,23 @@ func (t *TUI) loadEnvironments() tea.Cmd {
 
 func (t *TUI) activateEnv(id string) tea.Cmd {
 	return func() tea.Msg {
-		if err := t.adapter.SetActiveEnvironment(t.ctx, id); err != nil {
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		if err := t.adapter.SetActiveEnvironment(ctx, id); err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		active, err := t.adapter.GetActiveEnvironment(t.ctx)
+		active, err := t.adapter.GetActiveEnvironment(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		envs, err := t.adapter.ListEnvironments(t.ctx)
+		envs, err := t.adapter.ListEnvironments(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
@@ -865,20 +897,23 @@ func (t *TUI) activateEnv(id string) tea.Cmd {
 
 func (t *TUI) createEnv(name string) tea.Cmd {
 	return func() tea.Msg {
-		if _, err := t.adapter.CreateEnvironment(t.ctx, name); err != nil {
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		if _, err := t.adapter.CreateEnvironment(ctx, name); err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		envs, err := t.adapter.ListEnvironments(t.ctx)
+		envs, err := t.adapter.ListEnvironments(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		active, err := t.adapter.GetActiveEnvironment(t.ctx)
+		active, err := t.adapter.GetActiveEnvironment(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
@@ -894,20 +929,23 @@ func (t *TUI) createEnv(name string) tea.Cmd {
 
 func (t *TUI) deleteEnv(id string) tea.Cmd {
 	return func() tea.Msg {
-		if err := t.adapter.DeleteEnvironment(t.ctx, id); err != nil {
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		if err := t.adapter.DeleteEnvironment(ctx, id); err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		envs, err := t.adapter.ListEnvironments(t.ctx)
+		envs, err := t.adapter.ListEnvironments(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		active, err := t.adapter.GetActiveEnvironment(t.ctx)
+		active, err := t.adapter.GetActiveEnvironment(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
@@ -923,20 +961,23 @@ func (t *TUI) deleteEnv(id string) tea.Cmd {
 
 func (t *TUI) saveEnv(env *entity.Environment) tea.Cmd {
 	return func() tea.Msg {
-		if err := t.adapter.SaveEnvironment(t.ctx, env); err != nil {
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		if err := t.adapter.SaveEnvironment(ctx, env); err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		envs, err := t.adapter.ListEnvironments(t.ctx)
+		envs, err := t.adapter.ListEnvironments(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
 			}
 		}
 
-		active, err := t.adapter.GetActiveEnvironment(t.ctx)
+		active, err := t.adapter.GetActiveEnvironment(ctx)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
@@ -951,7 +992,10 @@ func (t *TUI) saveEnv(env *entity.Environment) tea.Cmd {
 }
 
 func (t *TUI) updateSidebarFromMsg(msg components.HistoryUpdatedMsg) {
-	collections, err := t.adapter.ListCollections(t.ctx)
+	ctx, cancel := context.WithCancel(t.ctx)
+	defer cancel()
+
+	collections, err := t.adapter.ListCollections(ctx)
 	if err != nil {
 		collections = make([]entity.Collection, 0)
 	}
@@ -962,7 +1006,10 @@ func (t *TUI) updateSidebarFromMsg(msg components.HistoryUpdatedMsg) {
 }
 
 func (t *TUI) updateSidebarCollections(msg components.CollectionsUpdatedMsg) {
-	history, err := t.adapter.GetHistory(t.ctx, 50)
+	ctx, cancel := context.WithCancel(t.ctx)
+	defer cancel()
+
+	history, err := t.adapter.GetHistory(ctx, 50)
 	if err != nil {
 		history = make([]entity.HistoryEntry, 0)
 	}
@@ -1004,7 +1051,10 @@ func (t *TUI) saveRequestToCollection(collectionID string, requestName string) t
 	req := t.snapshotRequest(requestName)
 
 	return func() tea.Msg {
-		collections, err := t.adapter.SaveRequestToCollection(t.ctx, req, requestName, collectionID)
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		collections, err := t.adapter.SaveRequestToCollection(ctx, req, requestName, collectionID)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
@@ -1022,7 +1072,10 @@ func (t *TUI) createAndSaveRequest(collectionName, requestName string) tea.Cmd {
 	req := t.snapshotRequest(requestName)
 
 	return func() tea.Msg {
-		collections, err := t.adapter.CreateCollection(t.ctx, collectionName, req)
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		collections, err := t.adapter.CreateCollection(ctx, collectionName, req)
 		if err != nil {
 			return components.ErrorMsg{
 				Err: err,
@@ -1032,6 +1085,87 @@ func (t *TUI) createAndSaveRequest(collectionName, requestName string) tea.Cmd {
 		return components.RequestSavedMsg{
 			Collections: collections,
 			FlashText:   "saved to new collection",
+		}
+	}
+}
+
+func (t *TUI) renameCollection(id string, name string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		collections, err := t.adapter.RenameCollection(ctx, id, name)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.RequestSavedMsg{
+			Collections: collections,
+			FlashText:   "renamed",
+		}
+	}
+}
+
+func (t *TUI) deleteCollectionCmd(id string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		collections, err := t.adapter.DeleteCollection(ctx, id)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.RequestSavedMsg{
+			Collections: collections,
+			FlashText:   "collection deleted",
+		}
+	}
+}
+
+func (t *TUI) removeRequestCmd(collectionID string, requestID string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		collections, err := t.adapter.RemoveRequest(ctx, collectionID, requestID)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.RequestSavedMsg{
+			Collections: collections,
+			FlashText:   "request removed",
+		}
+	}
+}
+
+func (t *TUI) deleteHistoryEntryCmd(entryID string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithCancel(t.ctx)
+		defer cancel()
+
+		if err := t.adapter.DeleteHistoryEntry(ctx, entryID); err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		history, err := t.adapter.GetHistory(ctx, 50)
+		if err != nil {
+			return components.ErrorMsg{
+				Err: err,
+			}
+		}
+
+		return components.HistoryUpdatedMsg{
+			History: history,
 		}
 	}
 }
