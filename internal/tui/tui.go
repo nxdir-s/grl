@@ -402,30 +402,6 @@ func (t *TUI) View() tea.View {
 		return v
 	}
 
-	mainWidth := t.width - t.sidebarWidth - 1
-
-	responseWidth := mainWidth / 2
-	requestWidth := mainWidth - responseWidth - 1 // -1 for separator
-
-	responseSection := t.responseSection()
-	requestRow := t.requestRow()
-
-	switch {
-	case t.focus == FocusURLBar:
-		requestRow = t.styles.focusIndicator.Render("▸ ") + requestRow
-	default:
-		requestRow = "  " + requestRow
-	}
-
-	builderView := t.requestBuilder()
-
-	requestContent := lipgloss.JoinVertical(
-		lipgloss.Left,
-		requestRow,
-		"",
-		builderView,
-	)
-
 	badge := t.envBadge()
 	if len(t.flashMsg) != 0 {
 		badge = t.styles.flash.Render(t.flashMsg) + "  " + badge
@@ -434,24 +410,35 @@ func (t *TUI) View() tea.View {
 	helpView := t.styles.statusBar.Render(t.statusBar.View(t.keys) + "  " + badge)
 	mainHeight := t.height - lipgloss.Height(helpView) - 1
 
-	responseCol := t.styles.base.
+	mainWidth := t.width - t.sidebarWidth
+	responseWidth := mainWidth / 2
+	requestWidth := mainWidth - responseWidth
+
+	urlOuterH := 3
+	builderOuterH := mainHeight - urlOuterH
+
+	sidebarView := t.panelStyle(FocusSidebar).
+		Width(t.sidebarWidth).
+		Height(mainHeight).
+		Render(t.sidebar.View())
+
+	urlPanel := t.panelStyle(FocusURLBar).
+		Width(requestWidth).
+		Height(urlOuterH).
+		Render(t.requestRow())
+
+	builderPanel := t.panelStyle(FocusRequestBuilder).
+		Width(requestWidth).
+		Height(builderOuterH).
+		Render(t.requestBuilder())
+
+	responsePanel := t.panelStyle(FocusResponseViewer).
 		Width(responseWidth).
 		Height(mainHeight).
-		Render(responseSection)
+		Render(t.responseSection())
 
-	requestCol := t.styles.base.
-		Width(requestWidth).
-		Height(mainHeight).
-		Render(requestContent)
-
-	colSeparator := t.styles.base.
-		Foreground(t.themes.colorBorder).
-		Height(mainHeight).
-		Render(strings.Repeat("│\n", mainHeight))
-
-	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, requestCol, colSeparator, responseCol)
-
-	sidebarView := t.sidebar.View()
+	requestCol := lipgloss.JoinVertical(lipgloss.Left, urlPanel, builderPanel)
+	mainContent := lipgloss.JoinHorizontal(lipgloss.Top, requestCol, responsePanel)
 
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebarView, mainContent)
 
@@ -556,28 +543,26 @@ func (t *TUI) handleMouseWheel(msg tea.MouseWheelMsg) tea.Cmd {
 	return cmd
 }
 
-func (t *TUI) responseSection() string {
-	var responseSection string
-
-	switch {
-	case t.loading:
-		responseSection = t.styles.loading.Render("  Sending request...")
-	case t.err != nil:
-		responseSection = t.styles.error.Render("  Error: " + t.err.Error())
-	case t.response.HasResponse():
-		respView := t.response.View()
-
-		switch t.focus == FocusResponseViewer {
-		case true:
-			responseSection = t.styles.focusIndicator.Render("▸ ") + respView
-		case false:
-			responseSection = "  " + respView
-		}
-	default:
-		responseSection = t.styles.responseSection.Render("  Press ctrl+s to send a request")
+func (t *TUI) panelStyle(panel FocusPanel) lipgloss.Style {
+	color := t.themes.colorBorder
+	if t.focus == panel {
+		color = t.themes.colorPrimary
 	}
 
-	return responseSection
+	return t.styles.panelBorder.BorderForeground(color)
+}
+
+func (t *TUI) responseSection() string {
+	switch {
+	case t.loading:
+		return t.styles.loading.Render("Sending request...")
+	case t.err != nil:
+		return t.styles.error.Render("Error: " + t.err.Error())
+	case t.response.HasResponse():
+		return t.response.View()
+	default:
+		return t.styles.responseSection.Render("Press ctrl+s to send a request")
+	}
 }
 
 func (t *TUI) requestRow() string {
@@ -590,16 +575,7 @@ func (t *TUI) requestRow() string {
 }
 
 func (t *TUI) requestBuilder() string {
-	builderView := t.builder.View()
-
-	switch {
-	case t.focus == FocusRequestBuilder:
-		builderView = t.styles.focusIndicator.Render("▸ ") + builderView
-	default:
-		builderView = "  " + builderView
-	}
-
-	return builderView
+	return t.builder.View()
 }
 
 func (t *TUI) cycleFocus(dir int) tea.Cmd {
@@ -640,55 +616,45 @@ func (t *TUI) focusCurrent() tea.Cmd {
 }
 
 func (t *TUI) recalcLayout() {
-	mainWidth := t.width - t.sidebarWidth - 1
-	helpHeight := 2
-	responseWidth := mainWidth/2 - 4
-	requestWidth := mainWidth - mainWidth/2 - 5
-	contentHeight := t.height - helpHeight - 1
-
-	builderHeight := 10
-	responseHeight := contentHeight - 2
-	if responseHeight < 5 {
-		responseHeight = 5
-	}
-
-	t.sidebar.SetSize(t.sidebarWidth, t.height-helpHeight)
-	t.builder.SetSize(requestWidth, builderHeight)
-	t.response.SetSize(responseWidth, responseHeight)
-
+	helpHeight := 1
 	mainHeight := t.height - helpHeight - 1
+
+	mainWidth := t.width - t.sidebarWidth
+	responseWidth := mainWidth / 2
+	requestWidth := mainWidth - responseWidth
+
+	urlOuterH := 3
+	builderOuterH := mainHeight - urlOuterH
+
+	t.sidebar.SetSize(t.sidebarWidth-2, mainHeight-2)
+	t.builder.SetSize(requestWidth-2, builderOuterH-2)
+	t.response.SetSize(responseWidth-2, mainHeight-2)
 
 	t.sidebarRect = Rect{
 		x: 0,
 		y: 0,
-		w: SidebarWidth,
+		w: t.sidebarWidth,
 		h: mainHeight,
 	}
 
-	reqColW := mainWidth - mainWidth/2 - 1
-	reqColX := SidebarWidth
-
 	t.urlBarRect = Rect{
-		x: reqColX,
+		x: t.sidebarWidth,
 		y: 0,
-		w: reqColW,
-		h: 3,
+		w: requestWidth,
+		h: urlOuterH,
 	}
 
 	t.builderRect = Rect{
-		x: reqColX,
-		y: 3,
-		w: reqColW,
-		h: mainHeight - 3,
+		x: t.sidebarWidth,
+		y: urlOuterH,
+		w: requestWidth,
+		h: builderOuterH,
 	}
 
-	respColX := reqColX + reqColW + 1
-	respColW := t.width - respColX
-
 	t.responseRect = Rect{
-		x: respColX,
+		x: t.sidebarWidth + requestWidth,
 		y: 0,
-		w: respColW,
+		w: responseWidth,
 		h: mainHeight,
 	}
 }

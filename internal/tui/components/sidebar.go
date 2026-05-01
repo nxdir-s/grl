@@ -87,7 +87,7 @@ type SidebarStyles struct {
 	danger   lipgloss.Style
 	selected lipgloss.Style
 	normal   lipgloss.Style
-	border   lipgloss.Style
+	base     lipgloss.Style
 }
 
 func NewSidebarStyles() *SidebarStyles {
@@ -98,7 +98,7 @@ func NewSidebarStyles() *SidebarStyles {
 		danger:   lipgloss.NewStyle().Foreground(lipgloss.Color("#FF4444")).Bold(true),
 		selected: lipgloss.NewStyle().Foreground(lipgloss.Color("#FAFAFA")).Background(lipgloss.Color("#7D56F4")),
 		normal:   lipgloss.NewStyle().Foreground(lipgloss.Color("#AAAAAA")),
-		border:   lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), false, true, false, false).BorderForeground(lipgloss.Color("#444444")),
+		base:     lipgloss.NewStyle(),
 	}
 }
 
@@ -459,7 +459,7 @@ func (c Sidebar) View() string {
 		content += "\n" + prompt
 	}
 
-	return c.styles.border.Width(c.width).Height(c.height).Render(content)
+	return c.styles.base.Width(c.width).Height(c.height).Render(content)
 }
 
 type LoadRequestMsg struct {
