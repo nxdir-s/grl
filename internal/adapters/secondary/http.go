@@ -221,6 +221,8 @@ func (a *HttpAdapter) Send(ctx context.Context, req *entity.Request) (*entity.Re
 	}
 	defer httpResp.Body.Close()
 
+	timing.Total = time.Since(start)
+
 	if httpResp.StatusCode/10 != 20 {
 		errBody := &bytes.Buffer{}
 
@@ -235,8 +237,6 @@ func (a *HttpAdapter) Send(ctx context.Context, req *entity.Request) (*entity.Re
 	if _, err := io.Copy(body, io.LimitReader(httpResp.Body, a.limit)); err != nil {
 		return nil, &ErrReadRespBody{err}
 	}
-
-	timing.Total = time.Since(start)
 
 	headers := make([]valobj.Header, 0, len(httpResp.Header))
 	for key, values := range httpResp.Header {
