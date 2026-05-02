@@ -26,7 +26,7 @@ Type a URL, press `ctrl+s`, and the response renders in the right panel
 | ------------------- | -------------------------- |
 | `ctrl+s`            | Send request               |
 | `esc`               | Cycle focus between panels |
-| `ctrl+s`            | Save request to collection |
+| `ctrl+w`            | Save request to collection |
 | `ctrl+o`            | Open collection / history  |
 | `ctrl+x` / `ctrl+q` | Cycle between tabs         |
 | `ctrl+f`            | Search response            |
