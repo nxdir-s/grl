@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"charm.land/bubbles/v2/key"
+	"charm.land/bubbles/v2/textinput"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -15,14 +16,23 @@ import (
 )
 
 type ResponseHeaderPaneStyles struct {
-	keys   lipgloss.Style
-	values lipgloss.Style
+	keys                  lipgloss.Style
+	values                lipgloss.Style
+	matchHighlight        lipgloss.Style
+	currentMatchHighlight lipgloss.Style
 }
 
 func NewResponseHeaderPaneStyles() *ResponseHeaderPaneStyles {
 	return &ResponseHeaderPaneStyles{
 		keys:   lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#7D56F4")),
 		values: lipgloss.NewStyle().Foreground(lipgloss.Color("#FAFAFA")),
+		matchHighlight: lipgloss.NewStyle().
+			Background(lipgloss.Color("#3a3a00")).
+			Foreground(lipgloss.Color("#FAFAFA")),
+		currentMatchHighlight: lipgloss.NewStyle().
+			Background(lipgloss.Color("#7D56F4")).
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Bold(true),
 	}
 }
 
@@ -31,6 +41,7 @@ type ResponseHeaderPane struct {
 	styles   *ResponseHeaderPaneStyles
 	ready    bool
 	raw      string
+	styled   string
 }
 
 func NewResponseHeaderPane() ResponseHeaderPane {
@@ -51,6 +62,8 @@ func (c *ResponseHeaderPane) SetSize(width, height int) {
 		)
 
 		c.viewport.MouseWheelEnabled = true
+		c.viewport.HighlightStyle = c.styles.matchHighlight
+		c.viewport.SelectedHighlightStyle = c.styles.currentMatchHighlight
 		c.ready = true
 	}
 }
@@ -61,7 +74,9 @@ func (c *ResponseHeaderPane) SetHeaders(headers []valobj.Header) {
 	}
 
 	if len(headers) == 0 {
-		c.viewport.SetContent("  No headers")
+		c.raw = ""
+		c.styled = "  No headers"
+		c.viewport.SetContent(c.styled)
 		return
 	}
 
@@ -85,16 +100,35 @@ func (c *ResponseHeaderPane) SetHeaders(headers []valobj.Header) {
 	}
 
 	c.raw = rawSb.String()
+	c.styled = sb.String()
 
-	c.viewport.SetContent(sb.String())
+	c.viewport.SetContent(c.styled)
 }
 
 func (c ResponseHeaderPane) Raw() string {
 	return c.raw
 }
 
+func (c *ResponseHeaderPane) ShowPlain() {
+	if c.ready {
+		c.viewport.SetContent(c.raw)
+	}
+}
+
+func (c *ResponseHeaderPane) ShowStyled() {
+	if c.ready {
+		c.viewport.SetContent(c.styled)
+	}
+}
+
+func (c *ResponseHeaderPane) Viewport() *viewport.Model {
+	return &c.viewport
+}
+
 func (c *ResponseHeaderPane) Clear() {
 	c.raw = ""
+	c.styled = ""
+
 	if c.ready {
 		c.viewport.SetContent("")
 	}
@@ -119,8 +153,26 @@ func (c ResponseHeaderPane) View() string {
 	return c.viewport.View()
 }
 
+type ResponseBodyPaneStyles struct {
+	matchHighlight        lipgloss.Style
+	currentMatchHighlight lipgloss.Style
+}
+
+func NewResponseBodyPaneStyles() *ResponseBodyPaneStyles {
+	return &ResponseBodyPaneStyles{
+		matchHighlight: lipgloss.NewStyle().
+			Background(lipgloss.Color("#3a3a00")).
+			Foreground(lipgloss.Color("#FAFAFA")),
+		currentMatchHighlight: lipgloss.NewStyle().
+			Background(lipgloss.Color("#7D56F4")).
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Bold(true),
+	}
+}
+
 type ResponseBodyPane struct {
 	adapter  ports.TUI
+	styles   *ResponseBodyPaneStyles
 	viewport viewport.Model
 	ready    bool
 	raw      string
@@ -129,6 +181,7 @@ type ResponseBodyPane struct {
 func NewResponseBodyPane(adapter ports.TUI) ResponseBodyPane {
 	return ResponseBodyPane{
 		adapter: adapter,
+		styles:  NewResponseBodyPaneStyles(),
 	}
 }
 
@@ -144,6 +197,8 @@ func (c *ResponseBodyPane) SetSize(width, height int) {
 		)
 
 		c.viewport.MouseWheelEnabled = true
+		c.viewport.HighlightStyle = c.styles.matchHighlight
+		c.viewport.SelectedHighlightStyle = c.styles.currentMatchHighlight
 		c.ready = true
 	}
 }
@@ -160,6 +215,22 @@ func (c *ResponseBodyPane) SetContent(resp *entity.Response) {
 
 func (c ResponseBodyPane) Raw() string {
 	return c.raw
+}
+
+func (c *ResponseBodyPane) ShowPlain() {
+	if c.ready {
+		c.viewport.SetContent(c.raw)
+	}
+}
+
+func (c *ResponseBodyPane) ShowStyled() {
+	if c.ready {
+		c.viewport.SetContent(c.adapter.ColorizeJSON(c.raw))
+	}
+}
+
+func (c *ResponseBodyPane) Viewport() *viewport.Model {
+	return &c.viewport
 }
 
 func (c *ResponseBodyPane) Clear() {
@@ -309,8 +380,11 @@ func formatSize(bytes int) string {
 }
 
 type ResponseViewerKeyMap struct {
-	NextTab key.Binding
-	PrevTab key.Binding
+	NextTab   key.Binding
+	PrevTab   key.Binding
+	NextMatch key.Binding
+	PrevMatch key.Binding
+	CloseFind key.Binding
 }
 
 func defaultResponseViewerKeys() ResponseViewerKeyMap {
@@ -323,6 +397,52 @@ func defaultResponseViewerKeys() ResponseViewerKeyMap {
 			key.WithKeys("ctrl+q"),
 			key.WithHelp("ctrl+q", "prev tab"),
 		),
+		NextMatch: key.NewBinding(
+			key.WithKeys("enter"),
+			key.WithHelp("enter", "next match"),
+		),
+		PrevMatch: key.NewBinding(
+			key.WithKeys("shift+enter"),
+			key.WithHelp("shift+enter", "prev match"),
+		),
+		CloseFind: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "close find"),
+		),
+	}
+}
+
+type ResponseSearch struct {
+	active  bool
+	input   textinput.Model
+	pattern string
+	total   int
+	current int
+}
+
+func NewResponseSearch() ResponseSearch {
+	input := textinput.New()
+	input.Prompt = "/ "
+	input.CharLimit = 256
+	input.Placeholder = "find in response"
+
+	return ResponseSearch{
+		input: input,
+	}
+}
+
+type ResponseViewerStyles struct {
+	searchBar     lipgloss.Style
+	searchCounter lipgloss.Style
+}
+
+func NewResponseViewerStyles() *ResponseViewerStyles {
+	return &ResponseViewerStyles{
+		searchBar: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FAFAFA")),
+		searchCounter: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#888888")).
+			Italic(true),
 	}
 }
 
@@ -337,7 +457,10 @@ type ResponseViewer struct {
 	width   int
 	height  int
 
-	keys ResponseViewerKeyMap
+	keys   ResponseViewerKeyMap
+	search ResponseSearch
+
+	styles *ResponseViewerStyles
 }
 
 func NewResponseViewer(adapter ports.TUI) ResponseViewer {
@@ -347,6 +470,8 @@ func NewResponseViewer(adapter ports.TUI) ResponseViewer {
 		bodyPane:   NewResponseBodyPane(adapter),
 		headerPane: NewResponseHeaderPane(),
 		keys:       defaultResponseViewerKeys(),
+		search:     NewResponseSearch(),
+		styles:     NewResponseViewerStyles(),
 	}
 }
 
@@ -362,8 +487,12 @@ func (c *ResponseViewer) SetSize(width, height int) {
 	c.width = width
 	c.height = height
 
-	// Reserve space for status line (2 lines) + tabs (1 line) + separator
 	paneHeight := height - 4
+
+	if c.search.active {
+		paneHeight--
+	}
+
 	if paneHeight < 1 {
 		paneHeight = 1
 	}
@@ -373,6 +502,10 @@ func (c *ResponseViewer) SetSize(width, height int) {
 }
 
 func (c *ResponseViewer) SetResponse(resp *entity.Response) {
+	if c.search.active {
+		c.CloseSearch()
+	}
+
 	c.hasResp = true
 	c.statusLine.SetResponse(resp)
 	c.bodyPane.SetContent(resp)
@@ -380,10 +513,178 @@ func (c *ResponseViewer) SetResponse(resp *entity.Response) {
 }
 
 func (c *ResponseViewer) Clear() {
+	if c.search.active {
+		c.CloseSearch()
+	}
+
 	c.hasResp = false
 	c.statusLine.Clear()
 	c.bodyPane.Clear()
 	c.headerPane.Clear()
+}
+
+func (c *ResponseViewer) SearchActive() bool {
+	return c.search.active
+}
+
+func (c *ResponseViewer) OpenSearch() tea.Cmd {
+	if !c.hasResp || c.search.active {
+		return nil
+	}
+
+	c.search.active = true
+	c.search.input.SetValue("")
+	c.search.pattern = ""
+	c.search.total = 0
+	c.search.current = 0
+
+	c.showActivePlain()
+	c.SetSize(c.width, c.height)
+
+	return c.search.input.Focus()
+}
+
+func (c *ResponseViewer) CloseSearch() {
+	if !c.search.active {
+		return
+	}
+
+	c.search.active = false
+	c.search.input.Blur()
+	c.search.input.SetValue("")
+	c.search.pattern = ""
+	c.search.total = 0
+	c.search.current = 0
+
+	if viewport := c.activeViewport(); viewport != nil {
+		viewport.ClearHighlights()
+	}
+
+	c.showActiveStyled()
+	c.SetSize(c.width, c.height)
+}
+
+func (c *ResponseViewer) activeViewport() *viewport.Model {
+	switch c.tabs.Active() {
+	case ResponseTabBody:
+		return c.bodyPane.Viewport()
+	case ResponseTabHeaders:
+		return c.headerPane.Viewport()
+	default:
+		return nil
+	}
+}
+
+func (c *ResponseViewer) activePaneRaw() string {
+	switch c.tabs.Active() {
+	case ResponseTabBody:
+		return c.bodyPane.Raw()
+	case ResponseTabHeaders:
+		return c.headerPane.Raw()
+	default:
+		return ""
+	}
+}
+
+func (c *ResponseViewer) showActivePlain() {
+	switch c.tabs.Active() {
+	case ResponseTabBody:
+		c.bodyPane.ShowPlain()
+	case ResponseTabHeaders:
+		c.headerPane.ShowPlain()
+	}
+}
+
+func (c *ResponseViewer) showActiveStyled() {
+	switch c.tabs.Active() {
+	case ResponseTabBody:
+		c.bodyPane.ShowStyled()
+	case ResponseTabHeaders:
+		c.headerPane.ShowStyled()
+	}
+}
+
+func (c *ResponseViewer) recomputeMatches() {
+	pattern := strings.ToLower(c.search.input.Value())
+	c.search.pattern = pattern
+
+	viewport := c.activeViewport()
+	if viewport == nil {
+		c.search.total = 0
+		c.search.current = 0
+		return
+	}
+
+	if pattern == "" {
+		viewport.ClearHighlights()
+		c.search.total = 0
+		c.search.current = 0
+		return
+	}
+
+	haystack := strings.ToLower(c.activePaneRaw())
+	matches := [][]int{}
+
+	for off := 0; off <= len(haystack); {
+		idx := strings.Index(haystack[off:], pattern)
+		if idx < 0 {
+			break
+		}
+
+		start := off + idx
+		end := start + len(pattern)
+
+		matches = append(matches, []int{start, end})
+
+		off = end
+		if off == start {
+			off++
+		}
+	}
+
+	if len(matches) == 0 {
+		viewport.ClearHighlights()
+		c.search.total = 0
+		c.search.current = 0
+		return
+	}
+
+	viewport.SetHighlights(matches)
+
+	c.search.total = len(matches)
+	c.search.current = 1
+}
+
+func (c *ResponseViewer) nextMatch() {
+	if c.search.total == 0 {
+		return
+	}
+
+	if vp := c.activeViewport(); vp != nil {
+		vp.HighlightNext()
+	}
+
+	c.search.current++
+
+	if c.search.current > c.search.total {
+		c.search.current = 1
+	}
+}
+
+func (c *ResponseViewer) prevMatch() {
+	if c.search.total == 0 {
+		return
+	}
+
+	if vp := c.activeViewport(); vp != nil {
+		vp.HighlightPrevious()
+	}
+
+	c.search.current--
+
+	if c.search.current < 1 {
+		c.search.current = c.search.total
+	}
 }
 
 func (c ResponseViewer) HasResponse() bool {
@@ -422,6 +723,10 @@ func (c ResponseViewer) Update(msg tea.Msg) (ResponseViewer, tea.Cmd) {
 		return c, cmd
 	}
 
+	if c.search.active {
+		return c.updateSearch(msg)
+	}
+
 	if !c.focused {
 		return c, nil
 	}
@@ -449,6 +754,48 @@ func (c ResponseViewer) Update(msg tea.Msg) (ResponseViewer, tea.Cmd) {
 	return c, cmd
 }
 
+func (c ResponseViewer) updateSearch(msg tea.Msg) (ResponseViewer, tea.Cmd) {
+	km, isKey := msg.(tea.KeyPressMsg)
+	if !isKey {
+		return c, nil
+	}
+
+	switch {
+	case key.Matches(km, c.keys.CloseFind):
+		c.CloseSearch()
+		return c, nil
+	case key.Matches(km, c.keys.NextMatch):
+		c.nextMatch()
+		return c, nil
+	case key.Matches(km, c.keys.PrevMatch):
+		c.prevMatch()
+		return c, nil
+	case key.Matches(km, c.keys.NextTab):
+		c.showActiveStyled()
+		c.tabs.Next()
+		c.showActivePlain()
+		c.recomputeMatches()
+		return c, nil
+	case key.Matches(km, c.keys.PrevTab):
+		c.showActiveStyled()
+		c.tabs.Prev()
+		c.showActivePlain()
+		c.recomputeMatches()
+		return c, nil
+	}
+
+	prev := c.search.input.Value()
+
+	var cmd tea.Cmd
+	c.search.input, cmd = c.search.input.Update(msg)
+
+	if c.search.input.Value() != prev {
+		c.recomputeMatches()
+	}
+
+	return c, cmd
+}
+
 func (c ResponseViewer) View() string {
 	if !c.hasResp {
 		return ""
@@ -465,10 +812,22 @@ func (c ResponseViewer) View() string {
 		paneView = c.headerPane.View()
 	}
 
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		statusView,
-		tabsView,
-		paneView,
-	)
+	parts := []string{statusView, tabsView, paneView}
+	if c.search.active {
+		parts = append(parts, c.searchBarView())
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, parts...)
+}
+
+func (c ResponseViewer) searchBarView() string {
+	var counter string
+	switch {
+	case c.search.total > 0:
+		counter = fmt.Sprintf(" (%d/%d)", c.search.current, c.search.total)
+	case c.search.input.Value() != "":
+		counter = " (no matches)"
+	}
+
+	return c.styles.searchBar.Render(c.search.input.View()) + c.styles.searchCounter.Render(counter)
 }

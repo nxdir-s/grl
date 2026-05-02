@@ -21,6 +21,7 @@ type KeyMap struct {
 	EnvModal    key.Binding
 	ConfigModal key.Binding
 	Copy        key.Binding
+	Search      key.Binding
 	SaveModal   key.Binding
 	Quit        key.Binding
 }
@@ -51,6 +52,10 @@ func defaultKeyMap() KeyMap {
 			key.WithKeys("ctrl+y"),
 			key.WithHelp("ctrl+y", "copy"),
 		),
+		Search: key.NewBinding(
+			key.WithKeys("ctrl+f"),
+			key.WithHelp("ctrl+f", "find"),
+		),
 		SaveModal: key.NewBinding(
 			key.WithKeys("ctrl+w"),
 			key.WithHelp("ctrl+w", "save request"),
@@ -70,6 +75,7 @@ func (m KeyMap) ShortHelp() []key.Binding {
 		m.EnvModal,
 		m.ConfigModal,
 		m.Copy,
+		m.Search,
 		m.SaveModal,
 		m.Quit,
 	}
@@ -84,6 +90,7 @@ func (m KeyMap) FullHelp() [][]key.Binding {
 			m.EnvModal,
 			m.ConfigModal,
 			m.Copy,
+			m.Search,
 			m.SaveModal,
 			m.Quit,
 		},
@@ -250,9 +257,17 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return t, cmd
 		}
 
-		switch {
-		case key.Matches(msg, t.keys.Quit):
+		if key.Matches(msg, t.keys.Quit) {
 			return t, tea.Quit
+		}
+
+		if t.response.SearchActive() {
+			var cmd tea.Cmd
+			t.response, cmd = t.response.Update(msg)
+			return t, cmd
+		}
+
+		switch {
 		case key.Matches(msg, t.keys.EnvModal):
 			t.envModal.Open()
 			return t, t.loadEnvironments()
@@ -271,6 +286,8 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return t, t.sendRequest()
 		case key.Matches(msg, t.keys.Copy) && t.focus == FocusResponseViewer:
 			return t, t.copyResponse()
+		case key.Matches(msg, t.keys.Search):
+			return t, t.openSearch()
 		case key.Matches(msg, t.keys.FocusNext):
 			return t, t.cycleFocus(1)
 		}
@@ -470,6 +487,24 @@ func (t *TUI) View() tea.View {
 	v.MouseMode = tea.MouseModeCellMotion
 
 	return v
+}
+
+func (t *TUI) openSearch() tea.Cmd {
+	if !t.response.HasResponse() {
+		return func() tea.Msg {
+			return components.FlashMsg{
+				Text: "no response to search",
+			}
+		}
+	}
+
+	if t.focus != FocusResponseViewer {
+		t.blurCurrent()
+		t.focus = FocusResponseViewer
+		t.focusCurrent()
+	}
+
+	return t.response.OpenSearch()
 }
 
 func (t *TUI) copyResponse() tea.Cmd {
