@@ -8,6 +8,13 @@ import (
 	"github.com/nxdir-s/grl/internal/core/valobj"
 )
 
+const (
+	FormURLKeyPlaceholder  string = "Field name"
+	FormURLValPlaceholder  string = "Field value"
+	FormDataKeyPlaceholder string = "Field name"
+	FormDataValPlaceholder string = "Value (or @/path/to/file)"
+)
+
 type BodyEditorKeyMap struct {
 	CycleType key.Binding
 }
@@ -60,8 +67,8 @@ type BodyEditor struct {
 func NewBodyEditor() BodyEditor {
 	return BodyEditor{
 		raw:      NewRequestBodyEditor(),
-		formURL:  NewKVEditor("Field name", "Field value"),
-		formData: NewKVEditor("Field name", "Value (or @/path/to/file)"),
+		formURL:  NewKVEditor(FormURLKeyPlaceholder, FormURLValPlaceholder),
+		formData: NewKVEditor(FormDataKeyPlaceholder, FormDataValPlaceholder),
 		keys:     defaultBodyEditorKeys(),
 		styles:   NewBodyEditorStyles(),
 	}
