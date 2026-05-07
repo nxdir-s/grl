@@ -30,7 +30,7 @@ type RequestBuilder struct {
 	auth    AuthEditor
 	headers KVEditor
 	params  KVEditor
-	body    RequestBodyEditor
+	body    BodyEditor
 
 	focused bool
 	width   int
@@ -45,7 +45,7 @@ func NewRequestBuilder() RequestBuilder {
 		auth:    NewAuthEditor(),
 		headers: NewKVEditor("Header name", "Header value"),
 		params:  NewKVEditor("Parameter name", "Parameter value"),
-		body:    NewRequestBodyEditor(),
+		body:    NewBodyEditor(),
 		keys:    defaultBuilderKeys(),
 	}
 }
@@ -97,6 +97,22 @@ func (c *RequestBuilder) SetParams(params []valobj.QueryParam) {
 
 func (c *RequestBuilder) SetBody(s string) {
 	c.body.SetValue(s)
+}
+
+func (c RequestBuilder) GetBodyType() valobj.BodyType {
+	return c.body.BodyType()
+}
+
+func (c *RequestBuilder) SetBodyType(t valobj.BodyType) {
+	c.body.SetBodyType(t)
+}
+
+func (c RequestBuilder) GetFormFields() []valobj.FormField {
+	return c.body.FormFields()
+}
+
+func (c *RequestBuilder) SetFormFields(fields []valobj.FormField) {
+	c.body.SetFormFields(fields)
 }
 
 func (c RequestBuilder) GetHeaders() []valobj.Header {

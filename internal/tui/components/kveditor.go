@@ -167,8 +167,48 @@ func (c *KVEditor) SetHeaders(headers []valobj.Header) {
 	c.focusedField = KVFieldKey
 }
 
+func (c KVEditor) FormFields() []valobj.FormField {
+	fields := make([]valobj.FormField, 0, len(c.rows))
+
+	for i := range c.rows {
+		key := c.rows[i].key.Value()
+		val := c.rows[i].value.Value()
+
+		if len(key) != 0 || len(val) != 0 {
+			fields = append(fields, valobj.FormField{
+				Key:     key,
+				Value:   val,
+				Enabled: c.rows[i].enabled,
+			})
+		}
+	}
+
+	return fields
+}
+
+func (c *KVEditor) SetFormFields(fields []valobj.FormField) {
+	c.rows = make([]KVRow, 0, len(fields))
+
+	for i := range fields {
+		row := NewKVRow(c.keyPlaceholder, c.valPlaceholder)
+
+		row.key.SetValue(fields[i].Key)
+		row.value.SetValue(fields[i].Value)
+		row.enabled = fields[i].Enabled
+
+		c.rows = append(c.rows, row)
+	}
+
+	if len(c.rows) == 0 {
+		c.addRow()
+	}
+
+	c.cursor = 0
+	c.focusedField = KVFieldKey
+}
+
 func (c KVEditor) QueryParams() []valobj.QueryParam {
-	var params []valobj.QueryParam
+	params := make([]valobj.QueryParam, 0, len(c.rows))
 
 	for i := range c.rows {
 		k := c.rows[i].key.Value()

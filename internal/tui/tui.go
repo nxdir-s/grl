@@ -711,12 +711,14 @@ func (t *TUI) sendRequest() tea.Cmd {
 	t.response.Clear()
 
 	req := &entity.Request{
-		Method:  method,
-		URL:     url,
-		Headers: t.builder.GetHeaders(),
-		Params:  t.builder.GetParams(),
-		Body:    t.builder.GetBody(),
-		Auth:    t.builder.GetAuth(),
+		Method:     method,
+		URL:        url,
+		Headers:    t.builder.GetHeaders(),
+		Params:     t.builder.GetParams(),
+		Body:       t.builder.GetBody(),
+		BodyType:   t.builder.GetBodyType(),
+		FormFields: t.builder.GetFormFields(),
+		Auth:       t.builder.GetAuth(),
 	}
 
 	return func() tea.Msg {
@@ -1026,6 +1028,8 @@ func (t *TUI) loadRequest(req *entity.Request) {
 	t.builder.SetHeaders(req.Headers)
 	t.builder.SetParams(req.Params)
 	t.builder.SetBody(req.Body)
+	t.builder.SetBodyType(req.BodyType)
+	t.builder.SetFormFields(req.FormFields)
 	t.builder.SetAuth(req.Auth)
 }
 
@@ -1038,13 +1042,15 @@ func (t *TUI) openSaveModal() tea.Cmd {
 
 func (t *TUI) snapshotRequest(name string) *entity.Request {
 	return &entity.Request{
-		Name:    name,
-		Method:  t.method.Current(),
-		URL:     t.urlBar.Value(),
-		Headers: t.builder.GetHeaders(),
-		Params:  t.builder.GetParams(),
-		Body:    t.builder.GetBody(),
-		Auth:    t.builder.GetAuth(),
+		Name:       name,
+		Method:     t.method.Current(),
+		URL:        t.urlBar.Value(),
+		Headers:    t.builder.GetHeaders(),
+		Params:     t.builder.GetParams(),
+		Body:       t.builder.GetBody(),
+		BodyType:   t.builder.GetBodyType(),
+		FormFields: t.builder.GetFormFields(),
+		Auth:       t.builder.GetAuth(),
 	}
 }
 

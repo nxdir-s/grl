@@ -7,9 +7,13 @@ import (
 	"io"
 	"log/slog"
 	"math"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/http/httptrace"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -31,7 +35,8 @@ const (
 	DefaultReadByteLimit   int64 = 15 * Mib
 	DefaultRetryLimit      int   = 3
 
-	ContentTypeHeader string = "Content-Type"
+	ContentTypeHeader         string = "Content-Type"
+	ContentTypeFormURLEncoded string = "application/x-www-form-urlencoded"
 )
 
 type ErrHttpCopy struct {
@@ -71,6 +76,15 @@ type ErrNilRequest struct{}
 
 func (e *ErrNilRequest) Error() string {
 	return "recieved nil request"
+}
+
+type ErrAttachFile struct {
+	path string
+	err  error
+}
+
+func (e *ErrAttachFile) Error() string {
+	return "failed to attach '" + e.path + "': " + e.err.Error()
 }
 
 type HttpOpt func(a *HttpAdapter)
@@ -164,21 +178,17 @@ func (a *HttpAdapter) Send(ctx context.Context, req *entity.Request) (*entity.Re
 		return nil, &ErrNilRequest{}
 	}
 
-	var bodyReader io.Reader
-	if len(req.Body) != 0 {
-		bodyReader = strings.NewReader(req.Body)
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, req.Method.String(), req.URL, bodyReader)
+	body, err := a.encodeBody(req)
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range req.Headers {
-		if req.Headers[i].Enabled && len(req.Headers[i].Key) != 0 {
-			httpReq.Header.Set(req.Headers[i].Key, req.Headers[i].Value)
-		}
+	httpReq, err := http.NewRequestWithContext(ctx, req.Method.String(), req.URL, body)
+	if err != nil {
+		return nil, err
 	}
+
+	a.applyHeaders(httpReq, req)
 
 	var timing valobj.Timing
 	var dnsStart, connectStart, tlsStart, gotConn time.Time
@@ -233,8 +243,8 @@ func (a *HttpAdapter) Send(ctx context.Context, req *entity.Request) (*entity.Re
 		return nil, &ErrHttpStatusCode{httpResp.StatusCode, errBody}
 	}
 
-	body := &bytes.Buffer{}
-	if _, err := io.Copy(body, io.LimitReader(httpResp.Body, a.limit)); err != nil {
+	respBody := &bytes.Buffer{}
+	if _, err := io.Copy(respBody, io.LimitReader(httpResp.Body, a.limit)); err != nil {
 		return nil, &ErrReadRespBody{err}
 	}
 
@@ -253,11 +263,94 @@ func (a *HttpAdapter) Send(ctx context.Context, req *entity.Request) (*entity.Re
 		StatusCode:    httpResp.StatusCode,
 		Status:        httpResp.Status,
 		Headers:       headers,
-		Body:          body,
+		Body:          respBody,
 		ContentType:   httpResp.Header.Get(ContentTypeHeader),
 		ContentLength: httpResp.ContentLength,
 		Timing:        timing,
 	}, nil
+}
+
+func (a *HttpAdapter) encodeBody(req *entity.Request) (io.Reader, error) {
+	switch req.BodyType {
+	case valobj.BodyTypeFormURL:
+		v := url.Values{}
+
+		for i := range req.FormFields {
+			if !req.FormFields[i].Enabled || len(req.FormFields[i].Key) == 0 {
+				continue
+			}
+
+			v.Add(req.FormFields[i].Key, req.FormFields[i].Value)
+		}
+
+		req.ContentType = ContentTypeFormURLEncoded
+
+		return strings.NewReader(v.Encode()), nil
+	case valobj.BodyTypeFormData:
+		buf := &bytes.Buffer{}
+		w := multipart.NewWriter(buf)
+
+		for i := range req.FormFields {
+			if !req.FormFields[i].Enabled || len(req.FormFields[i].Key) == 0 {
+				continue
+			}
+
+			if strings.HasPrefix(req.FormFields[i].Value, "@") {
+				path := strings.TrimPrefix(req.FormFields[i].Value, "@")
+
+				file, err := os.Open(path)
+				if err != nil {
+					return nil, &ErrAttachFile{path, err}
+				}
+
+				part, err := w.CreateFormFile(req.FormFields[i].Key, filepath.Base(path))
+				if err != nil {
+					file.Close()
+					return nil, err
+				}
+
+				if _, err := io.Copy(part, file); err != nil {
+					file.Close()
+					return nil, err
+				}
+
+				file.Close()
+				continue
+			}
+
+			if err := w.WriteField(req.FormFields[i].Key, req.FormFields[i].Value); err != nil {
+				return nil, err
+			}
+		}
+
+		if err := w.Close(); err != nil {
+			return nil, err
+		}
+
+		req.ContentType = w.FormDataContentType()
+
+		return buf, nil
+	default:
+		if len(req.Body) == 0 {
+			return nil, nil
+		}
+
+		return strings.NewReader(req.Body), nil
+	}
+}
+
+func (a *HttpAdapter) applyHeaders(httpReq *http.Request, req *entity.Request) {
+	for i := range req.Headers {
+		if !req.Headers[i].Enabled || len(req.Headers[i].Key) == 0 {
+			continue
+		}
+
+		httpReq.Header.Set(req.Headers[i].Key, req.Headers[i].Value)
+	}
+
+	if len(req.ContentType) != 0 {
+		httpReq.Header.Set(ContentTypeHeader, req.ContentType)
+	}
 }
 
 type RetryTransport struct {
