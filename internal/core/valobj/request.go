@@ -5,18 +5,6 @@ import (
 	"time"
 )
 
-type Header struct {
-	Key     string `json:"key"`
-	Value   string `json:"value"`
-	Enabled bool   `json:"enabled"`
-}
-
-type QueryParam struct {
-	Key     string `json:"key"`
-	Value   string `json:"value"`
-	Enabled bool   `json:"enabled"`
-}
-
 type HTTPMethod string
 
 const (
@@ -31,6 +19,32 @@ const (
 
 func (s HTTPMethod) String() string {
 	return string(s)
+}
+
+type BodyType string
+
+const (
+	BodyTypeRaw      BodyType = ""
+	BodyTypeFormURL  BodyType = "form_url"
+	BodyTypeFormData BodyType = "form_data"
+)
+
+type FormField struct {
+	Key     string `json:"key"`
+	Value   string `json:"value"`
+	Enabled bool   `json:"enabled"`
+}
+
+type Header struct {
+	Key     string `json:"key"`
+	Value   string `json:"value"`
+	Enabled bool   `json:"enabled"`
+}
+
+type QueryParam struct {
+	Key     string `json:"key"`
+	Value   string `json:"value"`
+	Enabled bool   `json:"enabled"`
 }
 
 type Timing struct {

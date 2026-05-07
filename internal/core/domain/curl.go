@@ -35,9 +35,30 @@ func (d *CurlCodec) Encode(req *entity.Request) string {
 		b.WriteString(d.shellQuote(req.Headers[i].Key + ": " + req.Headers[i].Value))
 	}
 
-	if req.Body != "" {
-		b.WriteString(" \\\n  -d ")
-		b.WriteString(d.shellQuote(req.Body))
+	switch req.BodyType {
+	case valobj.BodyTypeFormURL:
+		for i := range req.FormFields {
+			if !req.FormFields[i].Enabled || len(req.FormFields[i].Key) == 0 {
+				continue
+			}
+
+			b.WriteString(" \\\n  --data-urlencode ")
+			b.WriteString(d.shellQuote(req.FormFields[i].Key + "=" + req.FormFields[i].Value))
+		}
+	case valobj.BodyTypeFormData:
+		for i := range req.FormFields {
+			if !req.FormFields[i].Enabled || len(req.FormFields[i].Key) == 0 {
+				continue
+			}
+
+			b.WriteString(" \\\n  --form ")
+			b.WriteString(d.shellQuote(req.FormFields[i].Key + "=" + req.FormFields[i].Value))
+		}
+	default:
+		if len(req.Body) != 0 {
+			b.WriteString(" \\\n  -d ")
+			b.WriteString(d.shellQuote(req.Body))
+		}
 	}
 
 	finalURL := req.URL
@@ -60,23 +81,23 @@ func (d *CurlCodec) Encode(req *entity.Request) string {
 	return b.String()
 }
 
-func (d *CurlCodec) enabledParams(ps []valobj.QueryParam) []valobj.QueryParam {
+func (d *CurlCodec) enabledParams(params []valobj.QueryParam) []valobj.QueryParam {
 	out := make([]valobj.QueryParam, 0)
 
-	for _, p := range ps {
-		if p.Enabled && p.Key != "" {
-			out = append(out, p)
+	for i := range params {
+		if params[i].Enabled && len(params[i].Key) != 0 {
+			out = append(out, params[i])
 		}
 	}
 
 	return out
 }
 
-func (d *CurlCodec) encodeParams(ps []valobj.QueryParam) string {
+func (d *CurlCodec) encodeParams(params []valobj.QueryParam) string {
 	v := url.Values{}
 
-	for _, p := range ps {
-		v.Add(p.Key, p.Value)
+	for i := range params {
+		v.Add(params[i].Key, params[i].Value)
 	}
 
 	return v.Encode()
@@ -147,6 +168,35 @@ func (d *CurlCodec) Decode(s string) (*entity.Request, error) {
 		case "-d", "--data", "--data-raw", "--data-binary", "--data-ascii":
 			if v, ok := next(); ok {
 				req.Body = v
+				req.BodyType = valobj.BodyTypeRaw
+
+				if req.Method == valobj.MethodGet {
+					req.Method = valobj.MethodPost
+				}
+			}
+		case "--data-urlencode":
+			if v, ok := next(); ok {
+				k, val, _ := strings.Cut(v, "=")
+				req.FormFields = append(req.FormFields, valobj.FormField{
+					Key:     k,
+					Value:   val,
+					Enabled: true,
+				})
+				req.BodyType = valobj.BodyTypeFormURL
+
+				if req.Method == valobj.MethodGet {
+					req.Method = valobj.MethodPost
+				}
+			}
+		case "-F", "--form", "--form-string":
+			if v, ok := next(); ok {
+				k, val, _ := strings.Cut(v, "=")
+				req.FormFields = append(req.FormFields, valobj.FormField{
+					Key:     k,
+					Value:   val,
+					Enabled: true,
+				})
+				req.BodyType = valobj.BodyTypeFormData
 
 				if req.Method == valobj.MethodGet {
 					req.Method = valobj.MethodPost
@@ -208,7 +258,7 @@ func (d *CurlCodec) Decode(s string) (*entity.Request, error) {
 }
 
 func (d *CurlCodec) promoteBearerAuth(req *entity.Request) {
-	if req.Auth.Type != "" && req.Auth.Type != valobj.AuthNone {
+	if len(req.Auth.Type) != 0 && req.Auth.Type != valobj.AuthNone {
 		return
 	}
 
@@ -249,7 +299,7 @@ func (d *CurlCodec) extractQueryParams(req *entity.Request) {
 	req.URL = u.String()
 }
 
-func (d *CurlCodec) splitFlagValue(tok string) (flag, value string, hasEq bool) {
+func (d *CurlCodec) splitFlagValue(tok string) (flag string, value string, hasEq bool) {
 	if strings.HasPrefix(tok, "--") {
 		if i := strings.Index(tok, "="); i > 0 {
 			return tok[:i], tok[i+1:], true
