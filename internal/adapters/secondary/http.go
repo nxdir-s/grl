@@ -58,14 +58,6 @@ func (e *ErrHttpStatusCode) Error() string {
 	return "recieved bad status code: " + e.msg.String()
 }
 
-type ErrReadReqBody struct {
-	err error
-}
-
-func (e *ErrReadReqBody) Error() string {
-	return "failed to read request body: " + e.err.Error()
-}
-
 type ErrReadRespBody struct {
 	err error
 }
