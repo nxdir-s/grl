@@ -14,6 +14,7 @@ import (
 	"github.com/nxdir-s/grl/internal/config"
 	"github.com/nxdir-s/grl/internal/core/domain"
 	"github.com/nxdir-s/grl/internal/core/service"
+	"github.com/nxdir-s/grl/internal/logs"
 	"github.com/nxdir-s/grl/internal/ports"
 	"github.com/nxdir-s/grl/internal/tui"
 )
@@ -60,7 +61,7 @@ func main() {
 		}
 	}()
 
-	logger := slog.New(slog.NewTextHandler(logFile, nil))
+	logger := slog.New(logs.NewHandler(slog.NewTextHandler(logFile, nil)))
 	slog.SetDefault(logger)
 
 	var http ports.Http
