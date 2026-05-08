@@ -30,6 +30,7 @@ Type a URL, press `ctrl+s`, and the response renders in the right panel
 | `ctrl+o`            | Open collection / history  |
 | `ctrl+x` / `ctrl+q` | Cycle between tabs         |
 | `ctrl+f`            | Search response            |
+| `?`                 | Open help modal            |
 | `ctrl+c`            | Quit                       |
 
 ## Configuration
@@ -42,6 +43,16 @@ gRL stores its state under `~/.config/grl/`:
 ├── environments/    # environment variable sets
 ├── history.json     # request history (last 100 by default)
 └── config.json      # active env, default method, timeout, history limit
+```
+
+## Request Authorization
+
+Export the following environment variables to enable making OAuth2 authorized and authenticated HTTP requests
+
+```
+export CLIENT_ID=clientid
+export CLIENT_SECRET=secret
+export OAUTH_URL=https://example.com/oauth2/token
 ```
 
 ## Development
