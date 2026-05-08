@@ -327,6 +327,8 @@ func (a *TUIAdapter) SendRequest(ctx context.Context, req *entity.Request) (*ent
 		return nil, &ErrSendRequest{err}
 	}
 
+	a.logger.Info("sending request", slog.Any("request", *req))
+
 	resp, err := a.requests.Send(ctx, req)
 	if err != nil {
 		a.logger.Error("failed to send request", slog.String("err", err.Error()))

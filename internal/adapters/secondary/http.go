@@ -19,6 +19,8 @@ import (
 
 	"github.com/nxdir-s/grl/internal/core/entity"
 	"github.com/nxdir-s/grl/internal/core/valobj"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 )
 
 const (
@@ -92,6 +94,21 @@ type HttpOpt func(a *HttpAdapter)
 func WithHttpClient(client *http.Client) HttpOpt {
 	return func(a *HttpAdapter) {
 		a.http = client
+	}
+}
+
+func WithCredentials(ctx context.Context, id string, secret string, authUrl string, scopes ...string) HttpOpt {
+	return func(a *HttpAdapter) {
+		credentials := &clientcredentials.Config{
+			ClientID:     id,
+			ClientSecret: secret,
+			TokenURL:     authUrl,
+			Scopes:       make([]string, 0, len(scopes)),
+		}
+
+		credentials.Scopes = append(credentials.Scopes, scopes...)
+
+		a.http = credentials.Client(context.WithValue(ctx, oauth2.HTTPClient, a.http))
 	}
 }
 

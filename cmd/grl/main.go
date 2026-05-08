@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/nxdir-s/grl/internal/adapters/primary"
 	"github.com/nxdir-s/grl/internal/adapters/secondary"
+	"github.com/nxdir-s/grl/internal/config"
 	"github.com/nxdir-s/grl/internal/core/domain"
 	"github.com/nxdir-s/grl/internal/core/service"
 	"github.com/nxdir-s/grl/internal/ports"
@@ -21,6 +21,12 @@ import (
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+
+	cfg, err := config.New(ctx, config.WithCredentials())
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "failed to load config: %s\n", err.Error())
+		os.Exit(1)
+	}
 
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -84,7 +90,14 @@ func main() {
 		},
 	}
 
-	http = secondary.NewHttpAdapter(httpCfg, logger)
+	httpOpts := make([]secondary.HttpOpt, 0)
+	if cfg.Credentials {
+		httpOpts = append(httpOpts,
+			secondary.WithCredentials(ctx, cfg.ClientId, cfg.ClientSecret, cfg.OAuthURL),
+		)
+	}
+
+	http = secondary.NewHttpAdapter(httpCfg, logger, httpOpts...)
 	storage = secondary.NewJSONAdapter(logger, dataDir, collectionsDir, environmentsDir)
 
 	requestService = service.NewRequestService(http)
@@ -114,12 +127,6 @@ func main() {
 	)
 
 	app := tui.New(adapter, tui.WithContext(ctx))
-
-	defer func() {
-		if _, err := io.Copy(os.Stdout, logFile); err != nil {
-			fmt.Fprintf(os.Stdout, "failed to copy log to Stdout: %s\n", err.Error())
-		}
-	}()
 
 	if err := app.Run(ctx); err != nil {
 		logger.Error("failed to run", slog.String("err", err.Error()))

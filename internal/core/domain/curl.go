@@ -262,12 +262,12 @@ func (d *CurlCodec) promoteBearerAuth(req *entity.Request) {
 		return
 	}
 
-	for i, h := range req.Headers {
-		if !strings.EqualFold(h.Key, "Authorization") {
+	for i := range req.Headers {
+		if !strings.EqualFold(req.Headers[i].Key, "Authorization") {
 			continue
 		}
 
-		fields := strings.SplitN(h.Value, " ", 2)
+		fields := strings.SplitN(req.Headers[i].Value, " ", 2)
 		if len(fields) == 2 && strings.EqualFold(fields[0], "Bearer") {
 			req.Auth = valobj.Auth{
 				Type:  valobj.AuthBearer,
@@ -283,14 +283,16 @@ func (d *CurlCodec) promoteBearerAuth(req *entity.Request) {
 
 func (d *CurlCodec) extractQueryParams(req *entity.Request) {
 	u, err := url.Parse(req.URL)
-	if err != nil || u.RawQuery == "" {
+	if err != nil || len(u.RawQuery) == 0 {
 		return
 	}
 
-	for k, vs := range u.Query() {
-		for _, v := range vs {
+	for key, values := range u.Query() {
+		for i := range values {
 			req.Params = append(req.Params, valobj.QueryParam{
-				Key: k, Value: v, Enabled: true,
+				Key:     key,
+				Value:   values[i],
+				Enabled: true,
 			})
 		}
 	}
