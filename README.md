@@ -45,7 +45,7 @@ gRL stores its state under `~/.config/grl/`:
 └── config.json      # active env, default method, timeout, history limit
 ```
 
-## Request Authorization
+## Authorization
 
 Export the following environment variables to enable making OAuth2 authorized and authenticated HTTP requests
 
