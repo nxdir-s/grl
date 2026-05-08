@@ -3,5 +3,5 @@
 set -e
 
 GOOS=darwin go clean -testcache
-GOOS=darwin go test -v -cover ./... -coverprofile=./.github/cover.out
+GOOS=darwin go test -v -cover ./... -coverprofile=./.github/cover.out -coverpkg=./internal/core/domain,./internal/adapters/primary,./internal/adapters/secondary
 GOOS=darwin go tool cover -html=./.github/cover.out
