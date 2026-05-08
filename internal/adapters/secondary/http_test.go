@@ -3,6 +3,7 @@ package secondary
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	_ "embed"
 	"log/slog"
 	"net/http"
@@ -20,14 +21,28 @@ import (
 var testData []byte
 
 const (
-	TestHost      string = "http://example.com"
-	TestEndpoint  string = "/api"
-	TestResponse  string = "{}"
-	TestRateLimit int    = 60
+	TestHost                  string = "http://example.com"
+	TestEndpoint              string = "/api"
+	TestResponse              string = "{}"
+	TestRateLimit             int    = 60
+	TestErrMsg                string = "test error"
+	TestPath                  string = "/home/document.pdf"
+	TestTimeout               int    = 30
+	TestRetryLimit            int    = 3
+	TestMaxIdleConnections    int    = 10
+	TestMaxConnectionsPerHost int    = 10
+	TestReadByteLimit         int64  = 15 * Mib
 )
+
+type ErrTest struct{}
+
+func (e *ErrTest) Error() string {
+	return TestErrMsg
+}
 
 func TestSend(t *testing.T) {
 	cases := []struct {
+		cfg          *HttpConfig
 		opts         []HttpOpt
 		req          *entity.Request
 		expectedCode int
@@ -36,6 +51,17 @@ func TestSend(t *testing.T) {
 		response     *bytes.Buffer
 	}{
 		{
+			cfg: &HttpConfig{
+				TlsConfig: &tls.Config{
+					MinVersion: tls.VersionTLS12,
+				},
+				RetryEnabled:          true,
+				Timeout:               TestTimeout,
+				RetryLimit:            TestRetryLimit,
+				MaxIdleConnections:    TestMaxConnectionsPerHost,
+				MaxConnectionsPerHost: TestMaxConnectionsPerHost,
+				ReadByteLimit:         TestReadByteLimit,
+			},
 			opts: []HttpOpt{},
 			req: &entity.Request{
 				Method: valobj.MethodGet,
@@ -66,7 +92,7 @@ func TestSend(t *testing.T) {
 
 			tt.opts = append(tt.opts, WithHttpClient(ts.Client()))
 
-			adapter := NewHttpAdapter(&HttpConfig{}, logger, tt.opts...)
+			adapter := NewHttpAdapter(tt.cfg, logger, tt.opts...)
 
 			resp, err := adapter.Send(ctx, tt.req)
 
@@ -75,5 +101,34 @@ func TestSend(t *testing.T) {
 
 			ts.Close()
 		})
+	}
+}
+
+func TestHttpErrors(t *testing.T) {
+	var err error
+
+	err = &ErrHttpCopy{&ErrTest{}}
+	if len(err.Error()) == 0 {
+		t.Error("missing error message for ErrHttpCopy")
+	}
+
+	err = &ErrHttpStatusCode{http.StatusInternalServerError, bytes.NewBufferString(TestErrMsg)}
+	if len(err.Error()) == 0 {
+		t.Error("missing error message for ErrHttpStatusCode")
+	}
+
+	err = &ErrReadRespBody{&ErrTest{}}
+	if len(err.Error()) == 0 {
+		t.Error("missing error message for ErrReadRespBody")
+	}
+
+	err = &ErrNilRequest{}
+	if len(err.Error()) == 0 {
+		t.Error("missing error message for ErrNilRequest")
+	}
+
+	err = &ErrAttachFile{TestPath, &ErrTest{}}
+	if len(err.Error()) == 0 {
+		t.Error("missing error message for ErrAttachFile")
 	}
 }
