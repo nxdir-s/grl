@@ -43,11 +43,11 @@ type SaveModalKeyMap struct {
 
 func defaultSaveModalKeys() SaveModalKeyMap {
 	return SaveModalKeyMap{
-		Up:     key.NewBinding(key.WithKeys("up", "ctrl+p")),
-		Down:   key.NewBinding(key.WithKeys("down", "ctrl+n")),
-		Tab:    key.NewBinding(key.WithKeys("tab")),
-		Select: key.NewBinding(key.WithKeys("enter")),
-		Close:  key.NewBinding(key.WithKeys("esc")),
+		Up:     key.NewBinding(key.WithKeys("up", "ctrl+p"), key.WithHelp("↑", "up")),
+		Down:   key.NewBinding(key.WithKeys("down", "ctrl+n"), key.WithHelp("↓", "down")),
+		Tab:    key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next field")),
+		Select: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "save")),
+		Close:  key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "cancel")),
 	}
 }
 

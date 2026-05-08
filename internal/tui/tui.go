@@ -23,6 +23,7 @@ type KeyMap struct {
 	Copy        key.Binding
 	Search      key.Binding
 	SaveModal   key.Binding
+	Help        key.Binding
 	Quit        key.Binding
 }
 
@@ -60,6 +61,10 @@ func defaultKeyMap() KeyMap {
 			key.WithKeys("ctrl+w"),
 			key.WithHelp("ctrl+w", "save request"),
 		),
+		Help: key.NewBinding(
+			key.WithKeys("?"),
+			key.WithHelp("?", "help"),
+		),
 		Quit: key.NewBinding(
 			key.WithKeys("ctrl+c"),
 			key.WithHelp("ctrl+c", "quit"),
@@ -77,6 +82,7 @@ func (m KeyMap) ShortHelp() []key.Binding {
 		m.Copy,
 		m.Search,
 		m.SaveModal,
+		m.Help,
 		m.Quit,
 	}
 }
@@ -92,6 +98,7 @@ func (m KeyMap) FullHelp() [][]key.Binding {
 			m.Copy,
 			m.Search,
 			m.SaveModal,
+			m.Help,
 			m.Quit,
 		},
 	}
@@ -140,6 +147,7 @@ type TUI struct {
 	envModal    components.EnvModal
 	configModal components.ConfigModal
 	saveModal   components.SaveModal
+	helpModal   components.HelpModal
 
 	collections []entity.Collection
 
@@ -181,6 +189,7 @@ func New(adapter ports.TUI, opts ...TUIOpts) *TUI {
 		envModal:     components.NewEnvModal(),
 		configModal:  components.NewConfigModal(),
 		saveModal:    components.NewSaveModal(),
+		helpModal:    components.NewHelpModal(),
 		collections:  make([]entity.Collection, 0),
 		focus:        FocusURLBar,
 		keys:         defaultKeyMap(),
@@ -223,6 +232,7 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		t.height = msg.Height
 		t.statusBar.SetWidth(t.width)
 		t.envModal.SetSize(t.width, t.height)
+		t.helpModal.SetSize(t.width, t.height)
 		t.recalcLayout()
 
 		return t, nil
@@ -239,6 +249,12 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return t, t.handleMouseWheel(msg)
 	case tea.KeyPressMsg:
+		if t.helpModal.IsOpen() {
+			var cmd tea.Cmd
+			t.helpModal, cmd = t.helpModal.Update(msg)
+			return t, cmd
+		}
+
 		if t.envModal.IsOpen() {
 			var cmd tea.Cmd
 			t.envModal, cmd = t.envModal.Update(msg)
@@ -275,6 +291,9 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return t, t.openConfigModal()
 		case key.Matches(msg, t.keys.SaveModal):
 			return t, t.openSaveModal()
+		case key.Matches(msg, t.keys.Help):
+			t.openHelpModal()
+			return t, nil
 		case key.Matches(msg, t.keys.CycleMethod):
 			t.method.Next()
 			return t, nil
@@ -477,6 +496,12 @@ func (t *TUI) View() tea.View {
 			t.width, mainHeight,
 			lipgloss.Center, lipgloss.Center,
 			t.saveModal.View(),
+		)
+	case t.helpModal.IsOpen():
+		body = lipgloss.Place(
+			t.width, mainHeight,
+			lipgloss.Center, lipgloss.Center,
+			t.helpModal.View(),
 		)
 	}
 
@@ -695,7 +720,7 @@ func (t *TUI) recalcLayout() {
 }
 
 func (t *TUI) modalOpen() bool {
-	if t.envModal.IsOpen() || t.configModal.IsOpen() {
+	if t.envModal.IsOpen() || t.configModal.IsOpen() || t.saveModal.IsOpen() || t.helpModal.IsOpen() {
 		return true
 	}
 
@@ -1038,6 +1063,25 @@ func (t *TUI) openSaveModal() tea.Cmd {
 	defaultName = strings.TrimSpace(defaultName)
 
 	return t.saveModal.Open(t.collections, defaultName)
+}
+
+func (t *TUI) openHelpModal() {
+	global := components.HelpSection{
+		Title:    "Global",
+		Bindings: t.keys.ShortHelp(),
+	}
+
+	t.helpModal.SetSections(components.BuildHelpSections(
+		global,
+		t.sidebar,
+		t.builder,
+		t.response,
+		t.saveModal,
+		t.envModal,
+		t.configModal,
+	))
+
+	t.helpModal.Open()
 }
 
 func (t *TUI) snapshotRequest(name string) *entity.Request {
