@@ -73,9 +73,11 @@ func defaultSidebarKeys() SidebarKeyMap {
 		),
 		Yes: key.NewBinding(
 			key.WithKeys("y"),
+			key.WithHelp("y", "confirm delete"),
 		),
 		No: key.NewBinding(
 			key.WithKeys("n"),
+			key.WithHelp("n", "abort delete"),
 		),
 	}
 }
