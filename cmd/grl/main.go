@@ -94,7 +94,7 @@ func main() {
 	httpOpts := make([]secondary.HttpOpt, 0)
 	if cfg.Credentials {
 		httpOpts = append(httpOpts,
-			secondary.WithCredentials(ctx, cfg.ClientId, cfg.ClientSecret, cfg.OAuthURL),
+			secondary.WithCredentials(ctx, cfg.ClientId, cfg.ClientSecret, cfg.OAuthURL, cfg.OAuthScopes...),
 		)
 	}
 

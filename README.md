@@ -53,6 +53,7 @@ Export the following environment variables to enable making OAuth2 authorized an
 export CLIENT_ID=clientid
 export CLIENT_SECRET=secret
 export OAUTH_URL=https://example.com/oauth2/token
+export OAUTH_SCOPES=resource_read,resource_write // optional
 ```
 
 ## Development
