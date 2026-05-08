@@ -250,16 +250,6 @@ func (a *HttpAdapter) Send(ctx context.Context, req *entity.Request) (*entity.Re
 
 	timing.Total = time.Since(start)
 
-	if httpResp.StatusCode/10 != 20 {
-		errBody := &bytes.Buffer{}
-
-		if _, err := io.Copy(errBody, io.LimitReader(httpResp.Body, a.limit)); err != nil {
-			return nil, &ErrReadRespBody{err}
-		}
-
-		return nil, &ErrHttpStatusCode{httpResp.StatusCode, errBody}
-	}
-
 	respBody := &bytes.Buffer{}
 	if _, err := io.Copy(respBody, io.LimitReader(httpResp.Body, a.limit)); err != nil {
 		return nil, &ErrReadRespBody{err}
