@@ -47,7 +47,7 @@ gRL stores its state under `~/.config/grl/`:
 
 ## Authorization
 
-Export the following environment variables to enable making OAuth2 authorized and authenticated HTTP requests
+Export the following environment variables to enable OAuth2 authorized and authenticated HTTP requests
 
 ```
 export CLIENT_ID=clientid
