@@ -8,6 +8,7 @@ require (
 	charm.land/lipgloss/v2 v2.0.2
 	github.com/atotto/clipboard v0.1.4
 	github.com/google/uuid v1.6.0
+	github.com/muesli/reflow v0.3.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/oauth2 v0.36.0
 )
