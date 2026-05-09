@@ -45,12 +45,12 @@ func TestSend(t *testing.T) {
 		cfg          *HttpConfig
 		opts         []HttpOpt
 		req          *entity.Request
+		handler      func(w http.ResponseWriter, r *http.Request)
 		expectedCode int
 		expectedErr  error
-		endpoint     string
-		response     *bytes.Buffer
 	}{
 		{
+			opts: []HttpOpt{},
 			cfg: &HttpConfig{
 				TlsConfig: &tls.Config{
 					MinVersion: tls.VersionTLS12,
@@ -62,15 +62,88 @@ func TestSend(t *testing.T) {
 				MaxConnectionsPerHost: TestMaxConnectionsPerHost,
 				ReadByteLimit:         TestReadByteLimit,
 			},
-			opts: []HttpOpt{},
 			req: &entity.Request{
 				Method: valobj.MethodGet,
 				URL:    TestHost + TestEndpoint,
 			},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write(testData)
+			},
 			expectedCode: http.StatusOK,
 			expectedErr:  nil,
-			endpoint:     TestEndpoint,
-			response:     bytes.NewBuffer(testData),
+		},
+		{
+			opts: []HttpOpt{},
+			cfg: &HttpConfig{
+				TlsConfig: &tls.Config{
+					MinVersion: tls.VersionTLS12,
+				},
+				RetryEnabled:          true,
+				Timeout:               TestTimeout,
+				RetryLimit:            TestRetryLimit,
+				MaxIdleConnections:    TestMaxConnectionsPerHost,
+				MaxConnectionsPerHost: TestMaxConnectionsPerHost,
+				ReadByteLimit:         TestReadByteLimit,
+			},
+			req: &entity.Request{
+				Method: valobj.MethodGet,
+				URL:    TestHost + TestEndpoint,
+			},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(`{"status": "error"}`))
+			},
+			expectedCode: http.StatusBadRequest,
+			expectedErr:  nil,
+		},
+		{
+			opts: []HttpOpt{},
+			cfg: &HttpConfig{
+				TlsConfig: &tls.Config{
+					MinVersion: tls.VersionTLS12,
+				},
+				RetryEnabled:          true,
+				Timeout:               TestTimeout,
+				RetryLimit:            TestRetryLimit,
+				MaxIdleConnections:    TestMaxConnectionsPerHost,
+				MaxConnectionsPerHost: TestMaxConnectionsPerHost,
+				ReadByteLimit:         TestReadByteLimit,
+			},
+			req: &entity.Request{
+				Method: valobj.MethodGet,
+				URL:    TestHost + TestEndpoint,
+			},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte(`{"status": "unauthorized"}`))
+			},
+			expectedCode: http.StatusUnauthorized,
+			expectedErr:  nil,
+		},
+		{
+			opts: []HttpOpt{},
+			cfg: &HttpConfig{
+				TlsConfig: &tls.Config{
+					MinVersion: tls.VersionTLS12,
+				},
+				RetryEnabled:          true,
+				Timeout:               TestTimeout,
+				RetryLimit:            TestRetryLimit,
+				MaxIdleConnections:    TestMaxConnectionsPerHost,
+				MaxConnectionsPerHost: TestMaxConnectionsPerHost,
+				ReadByteLimit:         TestReadByteLimit,
+			},
+			req: &entity.Request{
+				Method: valobj.MethodGet,
+				URL:    TestHost + TestEndpoint,
+			},
+			handler: func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(`{"status": "error"}`))
+			},
+			expectedCode: http.StatusInternalServerError,
+			expectedErr:  nil,
 		},
 	}
 
@@ -83,10 +156,7 @@ func TestSend(t *testing.T) {
 	for i, tt := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			mux := http.NewServeMux()
-			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(tt.expectedCode)
-				w.Write(tt.response.Bytes())
-			})
+			mux.HandleFunc("/", tt.handler)
 
 			ts := httptest.NewServer(mux)
 
