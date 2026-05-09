@@ -10,9 +10,16 @@ import (
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/muesli/reflow/wordwrap"
+	"github.com/muesli/reflow/wrap"
 	"github.com/nxdir-s/grl/internal/core/entity"
 	"github.com/nxdir-s/grl/internal/core/valobj"
 	"github.com/nxdir-s/grl/internal/ports"
+)
+
+const (
+	ResponseHeaderPlaceholder string = "  No headers"
+	ResponseBodyIndent        int    = 2
 )
 
 type ResponseHeaderPaneStyles struct {
@@ -75,7 +82,7 @@ func (c *ResponseHeaderPane) SetHeaders(headers []valobj.Header) {
 
 	if len(headers) == 0 {
 		c.raw = ""
-		c.styled = "  No headers"
+		c.styled = ResponseHeaderPlaceholder
 		c.viewport.SetContent(c.styled)
 		return
 	}
@@ -175,6 +182,8 @@ type ResponseBodyPane struct {
 	styles   *ResponseBodyPaneStyles
 	viewport viewport.Model
 	ready    bool
+	styled   bool
+	width    int
 	raw      string
 }
 
@@ -182,10 +191,14 @@ func NewResponseBodyPane(adapter ports.TUI) ResponseBodyPane {
 	return ResponseBodyPane{
 		adapter: adapter,
 		styles:  NewResponseBodyPaneStyles(),
+		styled:  true,
 	}
 }
 
 func (c *ResponseBodyPane) SetSize(width, height int) {
+	widthChanged := width != c.width
+	c.width = width
+
 	switch c.ready {
 	case true:
 		c.viewport.SetWidth(width)
@@ -201,6 +214,19 @@ func (c *ResponseBodyPane) SetSize(width, height int) {
 		c.viewport.SelectedHighlightStyle = c.styles.currentMatchHighlight
 		c.ready = true
 	}
+
+	if widthChanged && len(c.raw) != 0 {
+		c.refresh()
+	}
+}
+
+func (c *ResponseBodyPane) refresh() {
+	content := c.raw
+	if c.styled {
+		content = c.adapter.ColorizeJSON(c.raw)
+	}
+
+	c.viewport.SetContent(c.wrapForViewport(content, c.width))
 }
 
 func (c *ResponseBodyPane) SetContent(resp *entity.Response) {
@@ -209,8 +235,7 @@ func (c *ResponseBodyPane) SetContent(resp *entity.Response) {
 	}
 
 	c.raw = resp.FormatBody()
-
-	c.viewport.SetContent(c.adapter.ColorizeJSON(c.raw))
+	c.refresh()
 }
 
 func (c ResponseBodyPane) Raw() string {
@@ -219,13 +244,15 @@ func (c ResponseBodyPane) Raw() string {
 
 func (c *ResponseBodyPane) ShowPlain() {
 	if c.ready {
-		c.viewport.SetContent(c.raw)
+		c.styled = false
+		c.refresh()
 	}
 }
 
 func (c *ResponseBodyPane) ShowStyled() {
 	if c.ready {
-		c.viewport.SetContent(c.adapter.ColorizeJSON(c.raw))
+		c.styled = true
+		c.refresh()
 	}
 }
 
@@ -257,6 +284,39 @@ func (c ResponseBodyPane) View() string {
 	}
 
 	return c.viewport.View()
+}
+
+func (c ResponseBodyPane) wrapForViewport(s string, width int) string {
+	if width <= ResponseBodyIndent+1 {
+		return s
+	}
+
+	inner := width - ResponseBodyIndent
+	pad := strings.Repeat(" ", ResponseBodyIndent)
+
+	var out strings.Builder
+	out.Grow(len(s) + len(s)/inner*ResponseBodyIndent)
+
+	lines := strings.Split(s, "\n")
+	for i := range lines {
+		wrapped := wrap.String(wordwrap.String(lines[i], inner), inner)
+		parts := strings.Split(wrapped, "\n")
+
+		for j := range parts {
+			if j > 0 {
+				out.WriteString("\n")
+				out.WriteString(pad)
+			}
+
+			out.WriteString(parts[j])
+		}
+
+		if i < len(lines)-1 {
+			out.WriteString("\n")
+		}
+	}
+
+	return out.String()
 }
 
 type ResponseStatusLineStyles struct {
