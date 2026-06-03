@@ -1,4 +1,4 @@
-# gRL
+# grl
 
 A terminal-based HTTP client
 
