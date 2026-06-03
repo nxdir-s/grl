@@ -2,7 +2,9 @@
 
 A terminal-based HTTP client
 
-![grl demo](.github/assets/demo.gif)
+<p align="center">
+  <img src=".github/assets/grl.gif" alt="grl demo" width="720">
+</p>
 
 ## Installation
 
