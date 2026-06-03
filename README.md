@@ -2,6 +2,8 @@
 
 A terminal-based HTTP client
 
+![grl demo](.github/assets/demo.gif)
+
 ## Installation
 
 ### Go
