@@ -217,7 +217,6 @@ func TestSend(t *testing.T) {
 			},
 			req: &entity.Request{
 				Method: valobj.MethodGet,
-				URL:    TestHost + TestEndpoint,
 			},
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
@@ -241,7 +240,6 @@ func TestSend(t *testing.T) {
 			},
 			req: &entity.Request{
 				Method: valobj.MethodGet,
-				URL:    TestHost + TestEndpoint,
 			},
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
@@ -265,7 +263,6 @@ func TestSend(t *testing.T) {
 			},
 			req: &entity.Request{
 				Method: valobj.MethodGet,
-				URL:    TestHost + TestEndpoint,
 			},
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusUnauthorized)
@@ -289,7 +286,6 @@ func TestSend(t *testing.T) {
 			},
 			req: &entity.Request{
 				Method: valobj.MethodGet,
-				URL:    TestHost + TestEndpoint,
 			},
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -314,6 +310,7 @@ func TestSend(t *testing.T) {
 			ts := httptest.NewServer(mux)
 
 			tt.opts = append(tt.opts, WithHttpClient(ts.Client()))
+			tt.req.URL = ts.URL
 
 			adapter := NewHttpAdapter(tt.cfg, logger, tt.opts...)
 
