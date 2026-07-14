@@ -19,6 +19,273 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// newBenchJSONAdapter returns an adapter backed by a temp directory unique to the benchmark
+func newBenchJSONAdapter(b *testing.B) *JSONAdapter {
+	dataDir := b.TempDir()
+
+	collectionsDir := filepath.Join(dataDir, "collections")
+	if err := os.MkdirAll(collectionsDir, 0o755); err != nil {
+		b.Fatalf("failed to create collections directory: %s", err.Error())
+	}
+
+	environmentsDir := filepath.Join(dataDir, "environments")
+	if err := os.MkdirAll(environmentsDir, 0o755); err != nil {
+		b.Fatalf("failed to create environments directory: %s", err.Error())
+	}
+
+	return NewJSONAdapter(benchLogger(), dataDir, collectionsDir, environmentsDir)
+}
+
+// makeRequest returns a populated request for benchmark fixtures
+func makeRequest(name string) *entity.Request {
+	return &entity.Request{
+		ID:     uuid.New().String(),
+		Name:   name,
+		Method: valobj.MethodPost,
+		URL:    TestURL,
+		Headers: []valobj.Header{
+			{Key: ContentTypeHeader, Value: BenchContentTypeJSON, Enabled: true},
+			{Key: "Accept", Value: BenchContentTypeJSON, Enabled: true},
+		},
+		Body: `{"key":"value"}`,
+	}
+}
+
+// makeCollection returns a collection with numRequests populated requests
+func makeCollection(id string, numRequests int) *entity.Collection {
+	collection := &entity.Collection{
+		ID:       id,
+		Name:     "bench" + id,
+		Requests: make([]entity.Request, 0, numRequests),
+	}
+
+	for i := 0; i < numRequests; i++ {
+		collection.Requests = append(collection.Requests, *makeRequest("request" + strconv.Itoa(i)))
+	}
+
+	return collection
+}
+
+// makeHistory returns numEntries populated history entries
+func makeHistory(numEntries int) []entity.HistoryEntry {
+	timestamp := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	history := make([]entity.HistoryEntry, 0, numEntries)
+
+	for i := 0; i < numEntries; i++ {
+		history = append(history, entity.HistoryEntry{
+			ID:        uuid.New().String(),
+			Request:   makeRequest("request" + strconv.Itoa(i)),
+			Timestamp: timestamp,
+		})
+	}
+
+	return history
+}
+
+// makeEnvironment returns an environment with numVars variables
+func makeEnvironment(id string, numVars int) *entity.Environment {
+	env := &entity.Environment{
+		ID:        id,
+		Name:      "bench" + id,
+		Variables: make(map[string]string, numVars),
+	}
+
+	for i := 0; i < numVars; i++ {
+		env.Variables["var"+strconv.Itoa(i)] = "value" + strconv.Itoa(i)
+	}
+
+	return env
+}
+
+func BenchmarkJSONAdapterSaveCollection(b *testing.B) {
+	for _, numRequests := range []int{1, 10, 100} {
+		b.Run("requests="+strconv.Itoa(numRequests), func(b *testing.B) {
+			adapter := newBenchJSONAdapter(b)
+			collection := makeCollection(uuid.New().String(), numRequests)
+
+			b.ReportAllocs()
+
+			for b.Loop() {
+				if err := adapter.SaveCollection(b.Context(), collection); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkJSONAdapterLoadCollection(b *testing.B) {
+	for _, numRequests := range []int{1, 10, 100} {
+		b.Run("requests="+strconv.Itoa(numRequests), func(b *testing.B) {
+			adapter := newBenchJSONAdapter(b)
+
+			id := uuid.New().String()
+			if err := adapter.SaveCollection(b.Context(), makeCollection(id, numRequests)); err != nil {
+				b.Fatal(err)
+			}
+
+			info, err := os.Stat(adapter.collectionFile(id))
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			b.ReportAllocs()
+			b.SetBytes(info.Size())
+
+			for b.Loop() {
+				if _, err := adapter.LoadCollection(b.Context(), id); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkJSONAdapterListCollections(b *testing.B) {
+	for _, numCollections := range []int{1, 10, 50} {
+		b.Run("collections="+strconv.Itoa(numCollections), func(b *testing.B) {
+			adapter := newBenchJSONAdapter(b)
+
+			for i := 0; i < numCollections; i++ {
+				if err := adapter.SaveCollection(b.Context(), makeCollection(uuid.New().String(), 10)); err != nil {
+					b.Fatal(err)
+				}
+			}
+
+			collections, err := adapter.ListCollections(b.Context())
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			if len(collections) != numCollections {
+				b.Fatalf("expected %d collections, found %d", numCollections, len(collections))
+			}
+
+			b.ReportAllocs()
+
+			for b.Loop() {
+				if _, err := adapter.ListCollections(b.Context()); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkJSONAdapterSaveHistory(b *testing.B) {
+	for _, numEntries := range []int{10, 100, 1000} {
+		b.Run("entries="+strconv.Itoa(numEntries), func(b *testing.B) {
+			adapter := newBenchJSONAdapter(b)
+			history := makeHistory(numEntries)
+
+			b.ReportAllocs()
+
+			for b.Loop() {
+				if err := adapter.SaveHistory(b.Context(), history); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkJSONAdapterLoadHistory(b *testing.B) {
+	for _, numEntries := range []int{10, 100, 1000} {
+		b.Run("entries="+strconv.Itoa(numEntries), func(b *testing.B) {
+			adapter := newBenchJSONAdapter(b)
+
+			if err := adapter.SaveHistory(b.Context(), makeHistory(numEntries)); err != nil {
+				b.Fatal(err)
+			}
+
+			info, err := os.Stat(adapter.historyFile)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			b.ReportAllocs()
+			b.SetBytes(info.Size())
+
+			for b.Loop() {
+				if _, err := adapter.LoadHistory(b.Context()); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkJSONAdapterEnvironment(b *testing.B) {
+	b.Run("save", func(b *testing.B) {
+		adapter := newBenchJSONAdapter(b)
+		env := makeEnvironment(uuid.New().String(), 20)
+
+		b.ReportAllocs()
+
+		for b.Loop() {
+			if err := adapter.SaveEnvironment(b.Context(), env); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("load", func(b *testing.B) {
+		adapter := newBenchJSONAdapter(b)
+
+		env := makeEnvironment(uuid.New().String(), 20)
+		if err := adapter.SaveEnvironment(b.Context(), env); err != nil {
+			b.Fatal(err)
+		}
+
+		b.ReportAllocs()
+
+		for b.Loop() {
+			if _, err := adapter.LoadEnvironment(b.Context(), env.ID); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func BenchmarkJSONAdapterConfig(b *testing.B) {
+	cfg := &valobj.Config{
+		ActiveEnvID:     uuid.New().String(),
+		DefaultMethod:   valobj.MethodGet.String(),
+		TimeoutSeconds:  DefaultTimeout,
+		FollowRedirects: true,
+		HistoryLimit:    100,
+	}
+
+	b.Run("save", func(b *testing.B) {
+		adapter := newBenchJSONAdapter(b)
+
+		b.ReportAllocs()
+
+		for b.Loop() {
+			if err := adapter.SaveConfig(b.Context(), cfg); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("load", func(b *testing.B) {
+		adapter := newBenchJSONAdapter(b)
+
+		if err := adapter.SaveConfig(b.Context(), cfg); err != nil {
+			b.Fatal(err)
+		}
+
+		b.ReportAllocs()
+
+		for b.Loop() {
+			if _, err := adapter.LoadConfig(b.Context()); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
 const (
 	TestCollectionName  string = "unittest"
 	TestEnvironmentName string = "testing"

@@ -25,6 +25,9 @@ jobs:
       - name: Go Test
         run: go test -v ./...
 
+      - name: Go Bench (smoke)
+        run: go test -run='^$' -bench=. -benchtime=1x ./internal/adapters/secondary/
+
       - name: Update coverage report
         uses: ncruces/go-coverage-report@v0
         with:

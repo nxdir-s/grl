@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	_ "embed"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +17,158 @@ import (
 	"github.com/nxdir-s/grl/internal/core/valobj"
 	"github.com/stretchr/testify/assert"
 )
+
+const (
+	BenchContentTypeJSON string = "application/json"
+	BenchNumFormFields   int    = 10
+	BenchRawBodySize     int64  = 1 * Kib
+)
+
+// newBenchServer returns a test server that always responds with http.StatusOK and payload
+func newBenchServer(payload []byte) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.Copy(io.Discard, r.Body)
+
+		w.Header().Set(ContentTypeHeader, BenchContentTypeJSON)
+		w.WriteHeader(http.StatusOK)
+		w.Write(payload)
+	}))
+}
+
+// benchRequest builds a request against url for the given body type
+func benchRequest(url string, bodyType valobj.BodyType) *entity.Request {
+	req := &entity.Request{
+		Method:   valobj.MethodPost,
+		URL:      url,
+		BodyType: bodyType,
+	}
+
+	switch bodyType {
+	case valobj.BodyTypeFormURL, valobj.BodyTypeFormData:
+		req.FormFields = make([]valobj.FormField, 0, BenchNumFormFields)
+
+		for i := 0; i < BenchNumFormFields; i++ {
+			req.FormFields = append(req.FormFields, valobj.FormField{
+				Key:     "field" + strconv.Itoa(i),
+				Value:   "value" + strconv.Itoa(i),
+				Enabled: true,
+			})
+		}
+	default:
+		req.Body = string(makeJSONPayload(BenchRawBodySize))
+		req.Headers = []valobj.Header{
+			{Key: ContentTypeHeader, Value: BenchContentTypeJSON, Enabled: true},
+		}
+	}
+
+	return req
+}
+
+func BenchmarkHttpAdapterSend(b *testing.B) {
+	cases := []struct {
+		name     string
+		bodyType valobj.BodyType
+		respSize int64
+	}{
+		{"raw/small", valobj.BodyTypeRaw, BenchSmallBody},
+		{"raw/medium", valobj.BodyTypeRaw, BenchMediumBody},
+		{"raw/large", valobj.BodyTypeRaw, BenchLargeBody},
+		{"form-url/small", valobj.BodyTypeFormURL, BenchSmallBody},
+		{"form-data/small", valobj.BodyTypeFormData, BenchSmallBody},
+	}
+
+	for _, bm := range cases {
+		b.Run(bm.name, func(b *testing.B) {
+			ts := newBenchServer(makeJSONPayload(bm.respSize))
+			defer ts.Close()
+
+			adapter := NewHttpAdapter(&HttpConfig{}, benchLogger())
+			req := benchRequest(ts.URL, bm.bodyType)
+
+			b.ReportAllocs()
+
+			if bm.bodyType == valobj.BodyTypeRaw {
+				b.SetBytes(bm.respSize)
+			}
+
+			for b.Loop() {
+				resp, err := adapter.Send(b.Context(), req)
+				if err != nil {
+					b.Fatal(err)
+				}
+
+				if resp.StatusCode != http.StatusOK {
+					b.Fatalf("unexpected status code: %d", resp.StatusCode)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkHttpAdapterSendParallel(b *testing.B) {
+	ts := newBenchServer(makeJSONPayload(BenchMediumBody))
+	defer ts.Close()
+
+	adapter := NewHttpAdapter(&HttpConfig{}, benchLogger())
+
+	b.ReportAllocs()
+	b.SetBytes(BenchMediumBody)
+
+	b.RunParallel(func(pb *testing.PB) {
+		// encodeBody writes req.ContentType, so each goroutine needs its own request
+		req := benchRequest(ts.URL, valobj.BodyTypeRaw)
+
+		for pb.Next() {
+			resp, err := adapter.Send(b.Context(), req)
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			if resp.StatusCode != http.StatusOK {
+				b.Fatalf("unexpected status code: %d", resp.StatusCode)
+			}
+		}
+	})
+}
+
+func BenchmarkHttpAdapterEncodeBody(b *testing.B) {
+	fileReq := &entity.Request{
+		Method:   valobj.MethodPost,
+		BodyType: valobj.BodyTypeFormData,
+		FormFields: []valobj.FormField{
+			{Key: "file", Value: "@testdata/response.json", Enabled: true},
+		},
+	}
+
+	cases := []struct {
+		name string
+		req  *entity.Request
+	}{
+		{"raw", benchRequest(TestHost+TestEndpoint, valobj.BodyTypeRaw)},
+		{"form-url", benchRequest(TestHost+TestEndpoint, valobj.BodyTypeFormURL)},
+		{"form-data", benchRequest(TestHost+TestEndpoint, valobj.BodyTypeFormData)},
+		{"form-data-file", fileReq},
+	}
+
+	adapter := NewHttpAdapter(&HttpConfig{}, benchLogger())
+
+	for _, bm := range cases {
+		b.Run(bm.name, func(b *testing.B) {
+			b.ReportAllocs()
+
+			for b.Loop() {
+				body, err := adapter.encodeBody(bm.req)
+				if err != nil {
+					b.Fatal(err)
+				}
+
+				if _, err := io.Copy(io.Discard, body); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
 
 //go:embed testdata/response.json
 var testData []byte
