@@ -72,6 +72,9 @@ go run cmd/grl/main.go
 # test
 ./.github/unit_tests.sh
 
+# bench
+go test -run='^$' -bench=. -benchmem ./internal/adapters/secondary/
+
 # vet
 go vet ./...
 ```
