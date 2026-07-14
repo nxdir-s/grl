@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/nxdir-s/grl/internal/core/entity"
 	"github.com/nxdir-s/grl/internal/core/valobj"
@@ -351,4 +352,107 @@ func TestHttpErrors(t *testing.T) {
 	if len(err.Error()) == 0 {
 		t.Error("missing error message for ErrAttachFile")
 	}
+}
+
+// TestTimeoutSeconds verifies HttpConfig.Timeout is interpreted as seconds:
+// a 1 second timeout against a slow server must fire at ~1s, not instantly
+// (the old nanosecond interpretation) and not at the 3s server delay
+func TestTimeoutSeconds(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-r.Context().Done():
+		case <-time.After(3 * time.Second):
+			w.WriteHeader(http.StatusOK)
+		}
+	}))
+	defer server.Close()
+
+	adapter := NewHttpAdapter(&HttpConfig{Timeout: 1}, benchLogger())
+
+	assert.Equal(t, time.Second, adapter.http.Timeout)
+
+	start := time.Now()
+	_, err := adapter.Send(context.Background(), &entity.Request{
+		Method: valobj.MethodGet,
+		URL:    server.URL,
+	})
+	elapsed := time.Since(start)
+
+	assert.Error(t, err)
+	assert.GreaterOrEqual(t, elapsed, 900*time.Millisecond, "timeout must not fire before the configured second")
+	assert.Less(t, elapsed, 2500*time.Millisecond, "timeout must fire before the server responds")
+}
+
+// TestRetryReplaysBody verifies each retry re-sends the original request body
+func TestRetryReplaysBody(t *testing.T) {
+	const payload = `{"key":"value"}`
+
+	attempts := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		assert.NoError(t, err)
+		assert.Equal(t, payload, string(body), "attempt %d must receive the request body", attempts+1)
+
+		attempts++
+		if attempts == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	transport := NewRetryTransport(http.DefaultTransport.(*http.Transport), 2)
+
+	req, err := http.NewRequest(http.MethodPost, server.URL, bytes.NewBufferString(payload))
+	assert.NoError(t, err)
+
+	resp, err := transport.RoundTrip(req)
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, 2, attempts)
+}
+
+// TestRetryTransportError verifies a transport-level error does not panic and
+// the backoff respects context cancellation
+func TestRetryTransportError(t *testing.T) {
+	transport := NewRetryTransport(http.DefaultTransport.(*http.Transport), 3)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://127.0.0.1:1", nil)
+	assert.NoError(t, err)
+
+	start := time.Now()
+	_, err = transport.RoundTrip(req) //nolint:bodyclose // resp is nil on error
+
+	assert.Error(t, err)
+	assert.Less(t, time.Since(start), time.Second, "canceled context must cut the backoff short")
+}
+
+func TestShouldRetry(t *testing.T) {
+	cases := []struct {
+		code     int
+		expected bool
+	}{
+		{http.StatusOK, false},
+		{http.StatusNoContent, false},
+		{http.StatusIMUsed, false},
+		{299, false},
+		{http.StatusMovedPermanently, true},
+		{http.StatusNotFound, true},
+		{http.StatusInternalServerError, true},
+	}
+
+	for _, tt := range cases {
+		t.Run(strconv.Itoa(tt.code), func(t *testing.T) {
+			assert.Equal(t, tt.expected, shouldRetry(&http.Response{StatusCode: tt.code}, nil))
+		})
+	}
+
+	assert.True(t, shouldRetry(nil, &ErrTest{}), "transport errors must retry without dereferencing resp")
 }

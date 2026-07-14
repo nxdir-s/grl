@@ -1,0 +1,511 @@
+?   	github.com/nxdir-s/grl/internal/adapters/primary	[no test files]
+goos: darwin
+goarch: arm64
+pkg: github.com/nxdir-s/grl/internal/adapters/secondary
+cpu: Apple M2 Pro
+BenchmarkCachedStorageLoadConfig-10         	47405816	        25.19 ns/op	      64 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadConfig-10         	49039389	        24.75 ns/op	      64 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadConfig-10         	49776181	        24.67 ns/op	      64 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadConfig-10         	50133427	        24.68 ns/op	      64 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadConfig-10         	49676413	        24.84 ns/op	      64 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadConfig-10         	42913785	        25.12 ns/op	      64 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadConfig-10         	48407103	        24.76 ns/op	      64 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadConfig-10         	49297173	        24.65 ns/op	      64 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadConfig-10         	50212881	        24.50 ns/op	      64 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadConfig-10         	48100849	        24.73 ns/op	      64 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadEnvironment-10    	 5396110	       218.9 ns/op	    1288 B/op	       5 allocs/op
+BenchmarkCachedStorageLoadEnvironment-10    	 5310176	       223.8 ns/op	    1288 B/op	       5 allocs/op
+BenchmarkCachedStorageLoadEnvironment-10    	 5004787	       231.1 ns/op	    1288 B/op	       5 allocs/op
+BenchmarkCachedStorageLoadEnvironment-10    	 5657732	       225.8 ns/op	    1288 B/op	       5 allocs/op
+BenchmarkCachedStorageLoadEnvironment-10    	 5343836	       217.0 ns/op	    1288 B/op	       5 allocs/op
+BenchmarkCachedStorageLoadEnvironment-10    	 5652717	       215.6 ns/op	    1288 B/op	       5 allocs/op
+BenchmarkCachedStorageLoadEnvironment-10    	 5646199	       215.9 ns/op	    1288 B/op	       5 allocs/op
+BenchmarkCachedStorageLoadEnvironment-10    	 5549067	       217.6 ns/op	    1288 B/op	       5 allocs/op
+BenchmarkCachedStorageLoadEnvironment-10    	 5400610	       230.3 ns/op	    1288 B/op	       5 allocs/op
+BenchmarkCachedStorageLoadEnvironment-10    	 5661247	       226.6 ns/op	    1288 B/op	       5 allocs/op
+BenchmarkCachedStorageLoadHistory-10        	 1719682	       707.2 ns/op	    6144 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadHistory-10        	 1693958	       712.0 ns/op	    6144 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadHistory-10        	 1810076	       677.2 ns/op	    6144 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadHistory-10        	 1704522	       697.4 ns/op	    6144 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadHistory-10        	 1708780	       702.6 ns/op	    6144 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadHistory-10        	 1729222	       685.2 ns/op	    6144 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadHistory-10        	 1801336	       671.7 ns/op	    6144 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadHistory-10        	 1715365	       701.7 ns/op	    6144 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadHistory-10        	 1670877	       689.5 ns/op	    6144 B/op	       1 allocs/op
+BenchmarkCachedStorageLoadHistory-10        	 1795426	       691.7 ns/op	    6144 B/op	       1 allocs/op
+BenchmarkCachedStorageListCollections-10    	  165160	      6964 ns/op	   39297 B/op	     111 allocs/op
+BenchmarkCachedStorageListCollections-10    	  187465	      6606 ns/op	   39297 B/op	     111 allocs/op
+BenchmarkCachedStorageListCollections-10    	  187182	      6501 ns/op	   39297 B/op	     111 allocs/op
+BenchmarkCachedStorageListCollections-10    	  188481	      6572 ns/op	   39297 B/op	     111 allocs/op
+BenchmarkCachedStorageListCollections-10    	  180553	      6469 ns/op	   39297 B/op	     111 allocs/op
+BenchmarkCachedStorageListCollections-10    	  187879	      6491 ns/op	   39297 B/op	     111 allocs/op
+BenchmarkCachedStorageListCollections-10    	  189944	      6571 ns/op	   39297 B/op	     111 allocs/op
+BenchmarkCachedStorageListCollections-10    	  173498	      6720 ns/op	   39297 B/op	     111 allocs/op
+BenchmarkCachedStorageListCollections-10    	  183694	      6592 ns/op	   39297 B/op	     111 allocs/op
+BenchmarkCachedStorageListCollections-10    	  186500	      6569 ns/op	   39297 B/op	     111 allocs/op
+BenchmarkHttpAdapterSend/raw/small-10       	   24871	     47729 ns/op	   1.05 MB/s	   10457 B/op	     120 allocs/op
+BenchmarkHttpAdapterSend/raw/small-10       	   25062	     47840 ns/op	   1.05 MB/s	   10537 B/op	     120 allocs/op
+BenchmarkHttpAdapterSend/raw/small-10       	   24850	     48022 ns/op	   1.04 MB/s	   10519 B/op	     120 allocs/op
+BenchmarkHttpAdapterSend/raw/small-10       	   24676	     47795 ns/op	   1.05 MB/s	   10559 B/op	     120 allocs/op
+BenchmarkHttpAdapterSend/raw/small-10       	   24777	     47901 ns/op	   1.04 MB/s	   10551 B/op	     120 allocs/op
+BenchmarkHttpAdapterSend/raw/small-10       	   25407	     47630 ns/op	   1.05 MB/s	   10519 B/op	     120 allocs/op
+BenchmarkHttpAdapterSend/raw/small-10       	   25405	     47295 ns/op	   1.06 MB/s	   10572 B/op	     120 allocs/op
+BenchmarkHttpAdapterSend/raw/small-10       	   24759	     48063 ns/op	   1.04 MB/s	   10535 B/op	     120 allocs/op
+BenchmarkHttpAdapterSend/raw/small-10       	   25017	     47723 ns/op	   1.05 MB/s	   10472 B/op	     120 allocs/op
+BenchmarkHttpAdapterSend/raw/small-10       	   24954	     47820 ns/op	   1.05 MB/s	   10487 B/op	     120 allocs/op
+BenchmarkHttpAdapterSend/raw/medium-10      	   19378	     61933 ns/op	 165.34 MB/s	   44030 B/op	     128 allocs/op
+BenchmarkHttpAdapterSend/raw/medium-10      	   19309	     61508 ns/op	 166.48 MB/s	   43940 B/op	     128 allocs/op
+BenchmarkHttpAdapterSend/raw/medium-10      	   19624	     61090 ns/op	 167.62 MB/s	   44070 B/op	     128 allocs/op
+BenchmarkHttpAdapterSend/raw/medium-10      	   19634	     61084 ns/op	 167.64 MB/s	   43914 B/op	     128 allocs/op
+BenchmarkHttpAdapterSend/raw/medium-10      	   18196	     64037 ns/op	 159.91 MB/s	   44074 B/op	     128 allocs/op
+BenchmarkHttpAdapterSend/raw/medium-10      	   18132	     63792 ns/op	 160.52 MB/s	   44039 B/op	     128 allocs/op
+BenchmarkHttpAdapterSend/raw/medium-10      	   18916	     63712 ns/op	 160.72 MB/s	   44065 B/op	     128 allocs/op
+BenchmarkHttpAdapterSend/raw/medium-10      	   18952	     61875 ns/op	 165.50 MB/s	   44002 B/op	     128 allocs/op
+BenchmarkHttpAdapterSend/raw/medium-10      	   19874	     61998 ns/op	 165.17 MB/s	   44177 B/op	     128 allocs/op
+BenchmarkHttpAdapterSend/raw/medium-10      	   19916	     62886 ns/op	 162.83 MB/s	   43958 B/op	     128 allocs/op
+BenchmarkHttpAdapterSend/raw/large-10       	    2584	    505515 ns/op	2074.27 MB/s	 4247864 B/op	     155 allocs/op
+BenchmarkHttpAdapterSend/raw/large-10       	    2462	    516086 ns/op	2031.78 MB/s	 4248425 B/op	     156 allocs/op
+BenchmarkHttpAdapterSend/raw/large-10       	    2386	    511012 ns/op	2051.96 MB/s	 4248096 B/op	     156 allocs/op
+BenchmarkHttpAdapterSend/raw/large-10       	    2398	    518366 ns/op	2022.85 MB/s	 4247756 B/op	     156 allocs/op
+BenchmarkHttpAdapterSend/raw/large-10       	    2326	    510846 ns/op	2052.63 MB/s	 4248300 B/op	     156 allocs/op
+BenchmarkHttpAdapterSend/raw/large-10       	    2434	    512854 ns/op	2044.59 MB/s	 4248114 B/op	     156 allocs/op
+BenchmarkHttpAdapterSend/raw/large-10       	    2294	    521331 ns/op	2011.34 MB/s	 4248147 B/op	     156 allocs/op
+BenchmarkHttpAdapterSend/raw/large-10       	    2379	    508108 ns/op	2063.69 MB/s	 4248183 B/op	     155 allocs/op
+BenchmarkHttpAdapterSend/raw/large-10       	    2047	    529287 ns/op	1981.11 MB/s	 4248206 B/op	     155 allocs/op
+BenchmarkHttpAdapterSend/raw/large-10       	    2286	    508853 ns/op	2060.67 MB/s	 4247921 B/op	     155 allocs/op
+BenchmarkHttpAdapterSend/form-url/small-10  	   24675	     49001 ns/op	   12235 B/op	     140 allocs/op
+BenchmarkHttpAdapterSend/form-url/small-10  	   24025	     48932 ns/op	   12246 B/op	     140 allocs/op
+BenchmarkHttpAdapterSend/form-url/small-10  	   23984	     48771 ns/op	   12166 B/op	     140 allocs/op
+BenchmarkHttpAdapterSend/form-url/small-10  	   24459	     48518 ns/op	   12226 B/op	     140 allocs/op
+BenchmarkHttpAdapterSend/form-url/small-10  	   24556	     48817 ns/op	   12221 B/op	     140 allocs/op
+BenchmarkHttpAdapterSend/form-url/small-10  	   22082	     55786 ns/op	   12209 B/op	     140 allocs/op
+BenchmarkHttpAdapterSend/form-url/small-10  	   24332	     49020 ns/op	   12235 B/op	     140 allocs/op
+BenchmarkHttpAdapterSend/form-url/small-10  	   24490	     49148 ns/op	   12228 B/op	     140 allocs/op
+BenchmarkHttpAdapterSend/form-url/small-10  	   24853	     48673 ns/op	   12188 B/op	     140 allocs/op
+BenchmarkHttpAdapterSend/form-url/small-10  	   24070	     48509 ns/op	   12207 B/op	     140 allocs/op
+BenchmarkHttpAdapterSend/form-data/small-10 	   21841	     55334 ns/op	   20425 B/op	     281 allocs/op
+BenchmarkHttpAdapterSend/form-data/small-10 	   21369	     56049 ns/op	   20435 B/op	     281 allocs/op
+BenchmarkHttpAdapterSend/form-data/small-10 	   21045	     56559 ns/op	   20454 B/op	     281 allocs/op
+BenchmarkHttpAdapterSend/form-data/small-10 	   21489	     55582 ns/op	   20457 B/op	     281 allocs/op
+BenchmarkHttpAdapterSend/form-data/small-10 	   21180	     56761 ns/op	   20496 B/op	     281 allocs/op
+BenchmarkHttpAdapterSend/form-data/small-10 	   20880	     57023 ns/op	   20453 B/op	     281 allocs/op
+BenchmarkHttpAdapterSend/form-data/small-10 	   21453	     56270 ns/op	   20442 B/op	     281 allocs/op
+BenchmarkHttpAdapterSend/form-data/small-10 	   20750	     56200 ns/op	   20521 B/op	     281 allocs/op
+BenchmarkHttpAdapterSend/form-data/small-10 	   21082	     56149 ns/op	   20486 B/op	     281 allocs/op
+BenchmarkHttpAdapterSend/form-data/small-10 	   21388	     56347 ns/op	   20397 B/op	     281 allocs/op
+BenchmarkHttpAdapterSendParallel-10         	   24837	     48243 ns/op	 212.26 MB/s	   55291 B/op	     131 allocs/op
+BenchmarkHttpAdapterSendParallel-10         	   24120	     48624 ns/op	 210.59 MB/s	   55452 B/op	     131 allocs/op
+BenchmarkHttpAdapterSendParallel-10         	   24633	     49140 ns/op	 208.38 MB/s	   55312 B/op	     130 allocs/op
+BenchmarkHttpAdapterSendParallel-10         	   24525	     48950 ns/op	 209.19 MB/s	   55242 B/op	     131 allocs/op
+BenchmarkHttpAdapterSendParallel-10         	   24806	     48724 ns/op	 210.16 MB/s	   54453 B/op	     131 allocs/op
+BenchmarkHttpAdapterSendParallel-10         	   24446	     47940 ns/op	 213.60 MB/s	   55607 B/op	     131 allocs/op
+BenchmarkHttpAdapterSendParallel-10         	   24811	     48145 ns/op	 212.69 MB/s	   55316 B/op	     131 allocs/op
+BenchmarkHttpAdapterSendParallel-10         	   24639	     49039 ns/op	 208.81 MB/s	   54926 B/op	     131 allocs/op
+BenchmarkHttpAdapterSendParallel-10         	   24284	     48993 ns/op	 209.01 MB/s	   55251 B/op	     131 allocs/op
+BenchmarkHttpAdapterSendParallel-10         	   24648	     50902 ns/op	 201.17 MB/s	   55091 B/op	     131 allocs/op
+BenchmarkHttpAdapterEncodeBody/raw-10       	42581188	        24.76 ns/op	      32 B/op	       1 allocs/op
+BenchmarkHttpAdapterEncodeBody/raw-10       	47925633	        24.62 ns/op	      32 B/op	       1 allocs/op
+BenchmarkHttpAdapterEncodeBody/raw-10       	49115912	        24.60 ns/op	      32 B/op	       1 allocs/op
+BenchmarkHttpAdapterEncodeBody/raw-10       	49501207	        24.60 ns/op	      32 B/op	       1 allocs/op
+BenchmarkHttpAdapterEncodeBody/raw-10       	49331116	        24.60 ns/op	      32 B/op	       1 allocs/op
+BenchmarkHttpAdapterEncodeBody/raw-10       	49344050	        24.71 ns/op	      32 B/op	       1 allocs/op
+BenchmarkHttpAdapterEncodeBody/raw-10       	49556827	        24.63 ns/op	      32 B/op	       1 allocs/op
+BenchmarkHttpAdapterEncodeBody/raw-10       	49351236	        24.60 ns/op	      32 B/op	       1 allocs/op
+BenchmarkHttpAdapterEncodeBody/raw-10       	48567182	        24.52 ns/op	      32 B/op	       1 allocs/op
+BenchmarkHttpAdapterEncodeBody/raw-10       	47139159	        24.61 ns/op	      32 B/op	       1 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-url-10  	 1000000	      1191 ns/op	    1600 B/op	      21 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-url-10  	 1000000	      1207 ns/op	    1600 B/op	      21 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-url-10  	  999475	      1183 ns/op	    1600 B/op	      21 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-url-10  	 1000000	      1195 ns/op	    1600 B/op	      21 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-url-10  	  999592	      1192 ns/op	    1600 B/op	      21 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-url-10  	 1000000	      1190 ns/op	    1600 B/op	      21 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-url-10  	 1000000	      1189 ns/op	    1600 B/op	      21 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-url-10  	 1000000	      1191 ns/op	    1600 B/op	      21 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-url-10  	  951172	      1193 ns/op	    1600 B/op	      21 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-url-10  	 1000000	      1194 ns/op	    1600 B/op	      21 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-10 	  179857	      6709 ns/op	    9373 B/op	     162 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-10 	  173155	      6741 ns/op	    9373 B/op	     162 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-10 	  178309	      6690 ns/op	    9373 B/op	     162 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-10 	  180218	      6691 ns/op	    9373 B/op	     162 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-10 	  181086	      6660 ns/op	    9373 B/op	     162 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-10 	  177901	      6728 ns/op	    9373 B/op	     162 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-10 	  178387	      6661 ns/op	    9373 B/op	     162 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-10 	  181718	      6652 ns/op	    9373 B/op	     162 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-10 	  181305	      6663 ns/op	    9373 B/op	     162 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-10 	  182644	      6673 ns/op	    9373 B/op	     162 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-file-10         	   78372	     15136 ns/op	   34701 B/op	      33 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-file-10         	   79723	     15176 ns/op	   34701 B/op	      33 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-file-10         	   79279	     15231 ns/op	   34701 B/op	      33 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-file-10         	   79488	     15191 ns/op	   34701 B/op	      33 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-file-10         	   80409	     15065 ns/op	   34701 B/op	      33 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-file-10         	   79089	     15111 ns/op	   34701 B/op	      33 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-file-10         	   79796	     15052 ns/op	   34701 B/op	      33 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-file-10         	   79628	     15143 ns/op	   34701 B/op	      33 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-file-10         	   79681	     15162 ns/op	   34701 B/op	      33 allocs/op
+BenchmarkHttpAdapterEncodeBody/form-data-file-10         	   79039	     15127 ns/op	   34701 B/op	      33 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=1-10         	   27032	     45218 ns/op	    1962 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=1-10         	   26455	     46480 ns/op	    1962 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=1-10         	   26587	     47347 ns/op	    1962 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=1-10         	   25510	     47687 ns/op	    1962 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=1-10         	   25746	     47822 ns/op	    1946 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=1-10         	   24799	     47399 ns/op	    1962 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=1-10         	   23073	     49894 ns/op	    1963 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=1-10         	   26840	     44890 ns/op	    1963 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=1-10         	   26155	     46405 ns/op	    1963 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=1-10         	   27117	     45207 ns/op	    1947 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=10-10        	   13279	     92630 ns/op	    9893 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=10-10        	   14308	     81895 ns/op	    9895 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=10-10        	   14042	     86149 ns/op	    9890 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=10-10        	   12476	     99491 ns/op	    9891 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=10-10        	   13492	     92922 ns/op	    9889 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=10-10        	   13615	     95153 ns/op	    9888 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=10-10        	   13893	     85664 ns/op	    9893 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=10-10        	   12795	     92288 ns/op	    9892 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=10-10        	   12578	     98051 ns/op	    9893 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=10-10        	   15387	     77931 ns/op	    9889 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=100-10       	    4921	    269834 ns/op	   87920 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=100-10       	    5024	    257792 ns/op	   88251 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=100-10       	    4996	    249244 ns/op	   88114 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=100-10       	    4760	    243954 ns/op	   88140 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=100-10       	    5005	    248519 ns/op	   88164 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=100-10       	    4938	    245061 ns/op	   88143 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=100-10       	    4987	    247054 ns/op	   88222 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=100-10       	    4926	    245065 ns/op	   88094 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=100-10       	    4946	    246478 ns/op	   88074 B/op	      10 allocs/op
+BenchmarkJSONAdapterSaveCollection/requests=100-10       	    4896	    247587 ns/op	   88169 B/op	      10 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=1-10         	   63692	     19052 ns/op	  30.92 MB/s	    2624 B/op	      33 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=1-10         	   63099	     19313 ns/op	  30.50 MB/s	    2624 B/op	      33 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=1-10         	   63706	     18814 ns/op	  31.31 MB/s	    2624 B/op	      33 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=1-10         	   63790	     18896 ns/op	  31.17 MB/s	    2624 B/op	      33 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=1-10         	   65306	     18926 ns/op	  31.12 MB/s	    2608 B/op	      33 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=1-10         	   64239	     18888 ns/op	  31.18 MB/s	    2624 B/op	      33 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=1-10         	   62934	     19007 ns/op	  30.99 MB/s	    2624 B/op	      33 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=1-10         	   63447	     19030 ns/op	  30.95 MB/s	    2624 B/op	      33 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=1-10         	   62834	     18848 ns/op	  31.25 MB/s	    2624 B/op	      33 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=1-10         	   63098	     18940 ns/op	  31.10 MB/s	    2624 B/op	      33 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=10-10        	   23161	     51630 ns/op	  92.29 MB/s	   19640 B/op	     145 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=10-10        	   23205	     51855 ns/op	  91.89 MB/s	   19640 B/op	     145 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=10-10        	   23482	     51494 ns/op	  92.54 MB/s	   19640 B/op	     145 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=10-10        	   23842	     51078 ns/op	  93.29 MB/s	   19640 B/op	     145 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=10-10        	   23210	     51512 ns/op	  92.50 MB/s	   19640 B/op	     145 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=10-10        	   23181	     50984 ns/op	  93.46 MB/s	   19640 B/op	     145 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=10-10        	   23223	     51116 ns/op	  93.22 MB/s	   19640 B/op	     145 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=10-10        	   23486	     51204 ns/op	  93.06 MB/s	   19640 B/op	     145 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=10-10        	   24043	     50566 ns/op	  94.23 MB/s	   19640 B/op	     145 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=10-10        	   23107	     50949 ns/op	  93.53 MB/s	   19640 B/op	     145 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=100-10       	    3402	    358001 ns/op	 130.21 MB/s	  173801 B/op	    1228 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=100-10       	    3312	    359815 ns/op	 129.55 MB/s	  173801 B/op	    1228 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=100-10       	    3292	    359990 ns/op	 129.49 MB/s	  173802 B/op	    1228 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=100-10       	    3394	    357288 ns/op	 130.47 MB/s	  173801 B/op	    1228 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=100-10       	    3398	    359653 ns/op	 129.61 MB/s	  173801 B/op	    1228 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=100-10       	    3306	    356910 ns/op	 130.61 MB/s	  173801 B/op	    1228 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=100-10       	    3340	    357488 ns/op	 130.40 MB/s	  173801 B/op	    1228 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=100-10       	    3330	    360787 ns/op	 129.20 MB/s	  173801 B/op	    1228 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=100-10       	    3279	    359306 ns/op	 129.74 MB/s	  173801 B/op	    1228 allocs/op
+BenchmarkJSONAdapterLoadCollection/requests=100-10       	    3397	    355289 ns/op	 131.20 MB/s	  173801 B/op	    1228 allocs/op
+BenchmarkJSONAdapterListCollections/collections=1-10     	   18093	     65950 ns/op	   21200 B/op	     155 allocs/op
+BenchmarkJSONAdapterListCollections/collections=1-10     	   17995	     66122 ns/op	   21200 B/op	     155 allocs/op
+BenchmarkJSONAdapterListCollections/collections=1-10     	   18184	     66101 ns/op	   21200 B/op	     155 allocs/op
+BenchmarkJSONAdapterListCollections/collections=1-10     	   18511	     65606 ns/op	   21200 B/op	     155 allocs/op
+BenchmarkJSONAdapterListCollections/collections=1-10     	   18454	     65394 ns/op	   21200 B/op	     155 allocs/op
+BenchmarkJSONAdapterListCollections/collections=1-10     	   18148	     65451 ns/op	   21200 B/op	     155 allocs/op
+BenchmarkJSONAdapterListCollections/collections=1-10     	   17896	     66843 ns/op	   21200 B/op	     155 allocs/op
+BenchmarkJSONAdapterListCollections/collections=1-10     	   18201	     66248 ns/op	   21200 B/op	     155 allocs/op
+BenchmarkJSONAdapterListCollections/collections=1-10     	   18514	     65507 ns/op	   21200 B/op	     155 allocs/op
+BenchmarkJSONAdapterListCollections/collections=1-10     	   18436	     65637 ns/op	   21200 B/op	     155 allocs/op
+BenchmarkJSONAdapterListCollections/collections=10-10    	    2331	    527962 ns/op	  200505 B/op	    1470 allocs/op
+BenchmarkJSONAdapterListCollections/collections=10-10    	    2329	    523376 ns/op	  200506 B/op	    1470 allocs/op
+BenchmarkJSONAdapterListCollections/collections=10-10    	    2121	    523800 ns/op	  200506 B/op	    1470 allocs/op
+BenchmarkJSONAdapterListCollections/collections=10-10    	    2233	    521859 ns/op	  200505 B/op	    1470 allocs/op
+BenchmarkJSONAdapterListCollections/collections=10-10    	    2337	    519609 ns/op	  200505 B/op	    1470 allocs/op
+BenchmarkJSONAdapterListCollections/collections=10-10    	    2340	    521620 ns/op	  200505 B/op	    1470 allocs/op
+BenchmarkJSONAdapterListCollections/collections=10-10    	    2343	    522538 ns/op	  200505 B/op	    1470 allocs/op
+BenchmarkJSONAdapterListCollections/collections=10-10    	    2250	    525923 ns/op	  200506 B/op	    1470 allocs/op
+BenchmarkJSONAdapterListCollections/collections=10-10    	    2247	    522309 ns/op	  200505 B/op	    1470 allocs/op
+BenchmarkJSONAdapterListCollections/collections=10-10    	    2334	    521787 ns/op	  200505 B/op	    1470 allocs/op
+BenchmarkJSONAdapterListCollections/collections=50-10    	     475	   2581210 ns/op	  994559 B/op	    7274 allocs/op
+BenchmarkJSONAdapterListCollections/collections=50-10    	     458	   2569127 ns/op	  994560 B/op	    7274 allocs/op
+BenchmarkJSONAdapterListCollections/collections=50-10    	     457	   2585380 ns/op	  994561 B/op	    7274 allocs/op
+BenchmarkJSONAdapterListCollections/collections=50-10    	     474	   2564616 ns/op	  994560 B/op	    7274 allocs/op
+BenchmarkJSONAdapterListCollections/collections=50-10    	     472	   2562857 ns/op	  994559 B/op	    7274 allocs/op
+BenchmarkJSONAdapterListCollections/collections=50-10    	     471	   2559287 ns/op	  994562 B/op	    7274 allocs/op
+BenchmarkJSONAdapterListCollections/collections=50-10    	     457	   2571069 ns/op	  994560 B/op	    7274 allocs/op
+BenchmarkJSONAdapterListCollections/collections=50-10    	     450	   2595449 ns/op	  994563 B/op	    7274 allocs/op
+BenchmarkJSONAdapterListCollections/collections=50-10    	     471	   2570034 ns/op	  994558 B/op	    7274 allocs/op
+BenchmarkJSONAdapterListCollections/collections=50-10    	     474	   2560400 ns/op	  994559 B/op	    7274 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=10-10            	   25704	     47662 ns/op	    4895 B/op	      16 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=10-10            	   23835	     50694 ns/op	    4893 B/op	      16 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=10-10            	   24416	     49827 ns/op	    4897 B/op	      16 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=10-10            	   23516	     49860 ns/op	    4898 B/op	      16 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=10-10            	   22987	     52027 ns/op	    4895 B/op	      16 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=10-10            	   24198	     51587 ns/op	    4900 B/op	      16 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=10-10            	   23422	     50819 ns/op	    4897 B/op	      16 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=10-10            	   24717	     50422 ns/op	    4896 B/op	      16 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=10-10            	   23161	     51184 ns/op	    4897 B/op	      16 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=10-10            	   23515	     52656 ns/op	    4896 B/op	      16 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=100-10           	    9844	    123794 ns/op	   46626 B/op	     106 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=100-10           	   10000	    119059 ns/op	   46579 B/op	     106 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=100-10           	   10000	    119391 ns/op	   46618 B/op	     106 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=100-10           	   10000	    118792 ns/op	   46526 B/op	     106 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=100-10           	   10000	    116717 ns/op	   46539 B/op	     106 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=100-10           	    9574	    122927 ns/op	   46641 B/op	     106 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=100-10           	   10000	    120110 ns/op	   46605 B/op	     106 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=100-10           	    9218	    118371 ns/op	   46662 B/op	     106 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=100-10           	   10000	    117745 ns/op	   46566 B/op	     106 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=100-10           	   10000	    120336 ns/op	   46645 B/op	     106 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=1000-10          	    1479	    829559 ns/op	  456879 B/op	    1007 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=1000-10          	    1453	    841512 ns/op	  461047 B/op	    1007 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=1000-10          	    1419	    841772 ns/op	  461154 B/op	    1007 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=1000-10          	    1477	    832636 ns/op	  449806 B/op	    1007 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=1000-10          	    1490	    832723 ns/op	  457349 B/op	    1007 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=1000-10          	    1482	    831481 ns/op	  449726 B/op	    1007 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=1000-10          	    1460	    839871 ns/op	  460151 B/op	    1007 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=1000-10          	    1452	    837188 ns/op	  459624 B/op	    1007 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=1000-10          	    1491	    832575 ns/op	  450281 B/op	    1007 allocs/op
+BenchmarkJSONAdapterSaveHistory/entries=1000-10          	    1495	    829433 ns/op	  447406 B/op	    1007 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=10-10            	   25826	     46339 ns/op	  80.73 MB/s	   13712 B/op	     161 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=10-10            	   26018	     45776 ns/op	  81.72 MB/s	   13712 B/op	     161 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=10-10            	   26685	     45430 ns/op	  82.35 MB/s	   13712 B/op	     161 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=10-10            	   26709	     45174 ns/op	  82.81 MB/s	   13712 B/op	     161 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=10-10            	   26256	     45390 ns/op	  82.42 MB/s	   13712 B/op	     161 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=10-10            	   26060	     45471 ns/op	  82.27 MB/s	   13712 B/op	     161 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=10-10            	   26281	     45546 ns/op	  82.14 MB/s	   13712 B/op	     161 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=10-10            	   26781	     45302 ns/op	  82.58 MB/s	   13712 B/op	     161 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=10-10            	   26677	     45254 ns/op	  82.67 MB/s	   13712 B/op	     161 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=10-10            	   26163	     45460 ns/op	  82.29 MB/s	   13712 B/op	     161 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=100-10           	    3626	    325534 ns/op	 115.17 MB/s	  126113 B/op	    1424 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=100-10           	    3687	    327370 ns/op	 114.52 MB/s	  126113 B/op	    1424 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=100-10           	    3573	    324939 ns/op	 115.38 MB/s	  126113 B/op	    1424 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=100-10           	    3676	    325827 ns/op	 115.06 MB/s	  126113 B/op	    1424 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=100-10           	    3703	    324498 ns/op	 115.54 MB/s	  126113 B/op	    1424 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=100-10           	    3654	    325497 ns/op	 115.18 MB/s	  126112 B/op	    1424 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=100-10           	    3638	    325736 ns/op	 115.10 MB/s	  126113 B/op	    1424 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=100-10           	    3628	    324967 ns/op	 115.37 MB/s	  126113 B/op	    1424 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=100-10           	    3687	    324479 ns/op	 115.54 MB/s	  126113 B/op	    1424 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=100-10           	    3710	    324430 ns/op	 115.56 MB/s	  126113 B/op	    1424 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=1000-10          	     378	   3161872 ns/op	 118.88 MB/s	 1180496 B/op	   14027 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=1000-10          	     373	   3163477 ns/op	 118.82 MB/s	 1180496 B/op	   14027 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=1000-10          	     378	   3167518 ns/op	 118.67 MB/s	 1180499 B/op	   14027 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=1000-10          	     381	   3160401 ns/op	 118.94 MB/s	 1180499 B/op	   14027 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=1000-10          	     381	   3154633 ns/op	 119.16 MB/s	 1180501 B/op	   14027 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=1000-10          	     376	   3165872 ns/op	 118.73 MB/s	 1180497 B/op	   14027 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=1000-10          	     376	   3142772 ns/op	 119.60 MB/s	 1180496 B/op	   14027 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=1000-10          	     376	   3156936 ns/op	 119.07 MB/s	 1180497 B/op	   14027 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=1000-10          	     381	   3142382 ns/op	 119.62 MB/s	 1180495 B/op	   14027 allocs/op
+BenchmarkJSONAdapterLoadHistory/entries=1000-10          	     382	   3162712 ns/op	 118.85 MB/s	 1180496 B/op	   14027 allocs/op
+BenchmarkJSONAdapterEnvironment/save-10                  	   26988	     46539 ns/op	    3660 B/op	      51 allocs/op
+BenchmarkJSONAdapterEnvironment/save-10                  	   25588	     48423 ns/op	    3660 B/op	      51 allocs/op
+BenchmarkJSONAdapterEnvironment/save-10                  	   23583	     48735 ns/op	    3660 B/op	      51 allocs/op
+BenchmarkJSONAdapterEnvironment/save-10                  	   24536	     47705 ns/op	    3660 B/op	      51 allocs/op
+BenchmarkJSONAdapterEnvironment/save-10                  	   24792	     49397 ns/op	    3661 B/op	      51 allocs/op
+BenchmarkJSONAdapterEnvironment/save-10                  	   21872	     47389 ns/op	    3660 B/op	      51 allocs/op
+BenchmarkJSONAdapterEnvironment/save-10                  	   28366	     46179 ns/op	    3661 B/op	      51 allocs/op
+BenchmarkJSONAdapterEnvironment/save-10                  	   24660	     47686 ns/op	    3660 B/op	      51 allocs/op
+BenchmarkJSONAdapterEnvironment/save-10                  	   26328	     47949 ns/op	    3660 B/op	      51 allocs/op
+BenchmarkJSONAdapterEnvironment/save-10                  	   25357	     47769 ns/op	    3660 B/op	      51 allocs/op
+BenchmarkJSONAdapterEnvironment/load-10                  	   60140	     20039 ns/op	    4576 B/op	      85 allocs/op
+BenchmarkJSONAdapterEnvironment/load-10                  	   59410	     20013 ns/op	    4576 B/op	      85 allocs/op
+BenchmarkJSONAdapterEnvironment/load-10                  	   58520	     20309 ns/op	    4576 B/op	      85 allocs/op
+BenchmarkJSONAdapterEnvironment/load-10                  	   60406	     19956 ns/op	    4576 B/op	      85 allocs/op
+BenchmarkJSONAdapterEnvironment/load-10                  	   59934	     20066 ns/op	    4576 B/op	      85 allocs/op
+BenchmarkJSONAdapterEnvironment/load-10                  	   60210	     20005 ns/op	    4576 B/op	      85 allocs/op
+BenchmarkJSONAdapterEnvironment/load-10                  	   59612	     20073 ns/op	    4576 B/op	      85 allocs/op
+BenchmarkJSONAdapterEnvironment/load-10                  	   58200	     20105 ns/op	    4576 B/op	      85 allocs/op
+BenchmarkJSONAdapterEnvironment/load-10                  	   60160	     20026 ns/op	    4576 B/op	      85 allocs/op
+BenchmarkJSONAdapterEnvironment/load-10                  	   60292	     20005 ns/op	    4576 B/op	      85 allocs/op
+BenchmarkJSONAdapterConfig/save-10                       	   32547	     40850 ns/op	     889 B/op	      10 allocs/op
+BenchmarkJSONAdapterConfig/save-10                       	   27949	     43199 ns/op	     889 B/op	      10 allocs/op
+BenchmarkJSONAdapterConfig/save-10                       	   26139	     44923 ns/op	     889 B/op	      10 allocs/op
+BenchmarkJSONAdapterConfig/save-10                       	   28022	     43002 ns/op	     889 B/op	      10 allocs/op
+BenchmarkJSONAdapterConfig/save-10                       	   25996	     44645 ns/op	     889 B/op	      10 allocs/op
+BenchmarkJSONAdapterConfig/save-10                       	   26917	     45160 ns/op	     889 B/op	      10 allocs/op
+BenchmarkJSONAdapterConfig/save-10                       	   26137	     44846 ns/op	     889 B/op	      10 allocs/op
+BenchmarkJSONAdapterConfig/save-10                       	   26707	     46395 ns/op	     889 B/op	      10 allocs/op
+BenchmarkJSONAdapterConfig/save-10                       	   26107	     45683 ns/op	     889 B/op	      10 allocs/op
+BenchmarkJSONAdapterConfig/save-10                       	   26658	     45804 ns/op	     889 B/op	      10 allocs/op
+BenchmarkJSONAdapterConfig/load-10                       	   88309	     13664 ns/op	    1512 B/op	      17 allocs/op
+BenchmarkJSONAdapterConfig/load-10                       	   84175	     13769 ns/op	    1512 B/op	      17 allocs/op
+BenchmarkJSONAdapterConfig/load-10                       	   88782	     13747 ns/op	    1512 B/op	      17 allocs/op
+BenchmarkJSONAdapterConfig/load-10                       	   88515	     13572 ns/op	    1512 B/op	      17 allocs/op
+BenchmarkJSONAdapterConfig/load-10                       	   87345	     13804 ns/op	    1512 B/op	      17 allocs/op
+BenchmarkJSONAdapterConfig/load-10                       	   88710	     13563 ns/op	    1512 B/op	      17 allocs/op
+BenchmarkJSONAdapterConfig/load-10                       	   85443	     13891 ns/op	    1512 B/op	      17 allocs/op
+BenchmarkJSONAdapterConfig/load-10                       	   86950	     14019 ns/op	    1512 B/op	      17 allocs/op
+BenchmarkJSONAdapterConfig/load-10                       	   88022	     13583 ns/op	    1512 B/op	      17 allocs/op
+BenchmarkJSONAdapterConfig/load-10                       	   88522	     13841 ns/op	    1512 B/op	      17 allocs/op
+PASS
+ok  	github.com/nxdir-s/grl/internal/adapters/secondary	402.551s
+?   	github.com/nxdir-s/grl/internal/config	[no test files]
+goos: darwin
+goarch: arm64
+pkg: github.com/nxdir-s/grl/internal/core/domain
+cpu: Apple M2 Pro
+BenchmarkColorizeJSON/size_10KB-10         	   21411	     55283 ns/op	 357.23 MB/s	   98304 B/op	       2 allocs/op
+BenchmarkColorizeJSON/size_10KB-10         	   22196	     54068 ns/op	 365.27 MB/s	   98304 B/op	       2 allocs/op
+BenchmarkColorizeJSON/size_10KB-10         	   22192	     54326 ns/op	 363.53 MB/s	   98304 B/op	       2 allocs/op
+BenchmarkColorizeJSON/size_10KB-10         	   22287	     53945 ns/op	 366.10 MB/s	   98304 B/op	       2 allocs/op
+BenchmarkColorizeJSON/size_10KB-10         	   21942	     54311 ns/op	 363.63 MB/s	   98304 B/op	       2 allocs/op
+BenchmarkColorizeJSON/size_10KB-10         	   22190	     54296 ns/op	 363.73 MB/s	   98304 B/op	       2 allocs/op
+BenchmarkColorizeJSON/size_10KB-10         	   22200	     54069 ns/op	 365.26 MB/s	   98304 B/op	       2 allocs/op
+BenchmarkColorizeJSON/size_10KB-10         	   22273	     54309 ns/op	 363.64 MB/s	   98304 B/op	       2 allocs/op
+BenchmarkColorizeJSON/size_10KB-10         	   22108	     54228 ns/op	 364.19 MB/s	   98304 B/op	       2 allocs/op
+BenchmarkColorizeJSON/size_10KB-10         	   21871	     54523 ns/op	 362.21 MB/s	   98304 B/op	       2 allocs/op
+BenchmarkColorizeJSON/size_1MB-10          	     224	   5345172 ns/op	 369.37 MB/s	15097900 B/op	       3 allocs/op
+BenchmarkColorizeJSON/size_1MB-10          	     224	   5279016 ns/op	 374.00 MB/s	15097913 B/op	       3 allocs/op
+BenchmarkColorizeJSON/size_1MB-10          	     228	   5263477 ns/op	 375.11 MB/s	15097902 B/op	       3 allocs/op
+BenchmarkColorizeJSON/size_1MB-10          	     228	   5269167 ns/op	 374.70 MB/s	15097908 B/op	       3 allocs/op
+BenchmarkColorizeJSON/size_1MB-10          	     226	   5238746 ns/op	 376.88 MB/s	15097905 B/op	       3 allocs/op
+BenchmarkColorizeJSON/size_1MB-10          	     220	   5342456 ns/op	 369.56 MB/s	15097906 B/op	       3 allocs/op
+BenchmarkColorizeJSON/size_1MB-10          	     226	   5287123 ns/op	 373.43 MB/s	15097914 B/op	       3 allocs/op
+BenchmarkColorizeJSON/size_1MB-10          	     229	   5257248 ns/op	 375.55 MB/s	15097911 B/op	       3 allocs/op
+BenchmarkColorizeJSON/size_1MB-10          	     226	   5267299 ns/op	 374.83 MB/s	15097914 B/op	       3 allocs/op
+BenchmarkColorizeJSON/size_1MB-10          	     226	   5255136 ns/op	 375.70 MB/s	15097911 B/op	       3 allocs/op
+BenchmarkSubstitute/url_5vars-10           	 1000000	      1011 ns/op	  74.20 MB/s	     481 B/op	       7 allocs/op
+BenchmarkSubstitute/url_5vars-10           	 1000000	      1011 ns/op	  74.20 MB/s	     481 B/op	       7 allocs/op
+BenchmarkSubstitute/url_5vars-10           	 1000000	      1008 ns/op	  74.44 MB/s	     481 B/op	       7 allocs/op
+BenchmarkSubstitute/url_5vars-10           	 1000000	      1012 ns/op	  74.09 MB/s	     481 B/op	       7 allocs/op
+BenchmarkSubstitute/url_5vars-10           	 1000000	      1008 ns/op	  74.41 MB/s	     481 B/op	       7 allocs/op
+BenchmarkSubstitute/url_5vars-10           	 1000000	      1008 ns/op	  74.41 MB/s	     481 B/op	       7 allocs/op
+BenchmarkSubstitute/url_5vars-10           	 1000000	      1005 ns/op	  74.65 MB/s	     481 B/op	       7 allocs/op
+BenchmarkSubstitute/url_5vars-10           	 1000000	      1008 ns/op	  74.40 MB/s	     481 B/op	       7 allocs/op
+BenchmarkSubstitute/url_5vars-10           	 1000000	      1008 ns/op	  74.40 MB/s	     481 B/op	       7 allocs/op
+BenchmarkSubstitute/url_5vars-10           	 1000000	      1010 ns/op	  74.28 MB/s	     481 B/op	       7 allocs/op
+BenchmarkSubstitute/body_10KB_with_vars-10 	    9466	    116760 ns/op	  87.90 MB/s	   50047 B/op	     280 allocs/op
+BenchmarkSubstitute/body_10KB_with_vars-10 	   10000	    116445 ns/op	  88.14 MB/s	   50057 B/op	     280 allocs/op
+BenchmarkSubstitute/body_10KB_with_vars-10 	   10000	    116089 ns/op	  88.41 MB/s	   50083 B/op	     280 allocs/op
+BenchmarkSubstitute/body_10KB_with_vars-10 	   10000	    116760 ns/op	  87.90 MB/s	   50053 B/op	     280 allocs/op
+BenchmarkSubstitute/body_10KB_with_vars-10 	   10000	    116607 ns/op	  88.01 MB/s	   50061 B/op	     280 allocs/op
+BenchmarkSubstitute/body_10KB_with_vars-10 	   10000	    116177 ns/op	  88.34 MB/s	   50068 B/op	     280 allocs/op
+BenchmarkSubstitute/body_10KB_with_vars-10 	   10000	    116541 ns/op	  88.06 MB/s	   50042 B/op	     280 allocs/op
+BenchmarkSubstitute/body_10KB_with_vars-10 	   10000	    116021 ns/op	  88.46 MB/s	   50053 B/op	     280 allocs/op
+BenchmarkSubstitute/body_10KB_with_vars-10 	   10000	    115472 ns/op	  88.88 MB/s	   50050 B/op	     280 allocs/op
+BenchmarkSubstitute/body_10KB_with_vars-10 	   10000	    115991 ns/op	  88.48 MB/s	   50050 B/op	     280 allocs/op
+BenchmarkSubstitute/body_10KB_no_placeholders-10         	  965205	      1279 ns/op	8034.53 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_placeholders-10         	  953013	      1279 ns/op	8035.33 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_placeholders-10         	  944949	      1279 ns/op	8034.77 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_placeholders-10         	  962856	      1278 ns/op	8041.37 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_placeholders-10         	  938204	      1277 ns/op	8050.17 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_placeholders-10         	  961945	      1272 ns/op	8078.65 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_placeholders-10         	  937581	      1282 ns/op	8020.37 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_placeholders-10         	  937777	      1278 ns/op	8040.85 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_placeholders-10         	  933633	      1276 ns/op	8057.70 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_placeholders-10         	  962218	      1275 ns/op	8063.39 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_vars-10                 	625216138	         1.924 ns/op	5333748.68 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_vars-10                 	617272306	         1.929 ns/op	5321752.36 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_vars-10                 	624352477	         1.925 ns/op	5332427.66 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_vars-10                 	624845552	         1.926 ns/op	5329042.14 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_vars-10                 	624922971	         1.924 ns/op	5334129.36 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_vars-10                 	625549117	         1.923 ns/op	5336116.02 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_vars-10                 	618281953	         1.927 ns/op	5326099.09 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_vars-10                 	623371496	         1.925 ns/op	5330736.89 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_vars-10                 	624716247	         1.924 ns/op	5334741.33 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstitute/body_10KB_no_vars-10                 	625184242	         1.924 ns/op	5335538.35 MB/s	       0 B/op	       0 allocs/op
+BenchmarkSubstituteRequest-10                            	  105337	     11426 ns/op	   11850 B/op	      99 allocs/op
+BenchmarkSubstituteRequest-10                            	  106362	     11298 ns/op	   11849 B/op	      99 allocs/op
+BenchmarkSubstituteRequest-10                            	  104004	     11319 ns/op	   11850 B/op	      99 allocs/op
+BenchmarkSubstituteRequest-10                            	  107252	     11304 ns/op	   11851 B/op	      99 allocs/op
+BenchmarkSubstituteRequest-10                            	  106815	     11309 ns/op	   11852 B/op	      99 allocs/op
+BenchmarkSubstituteRequest-10                            	  106299	     11309 ns/op	   11850 B/op	      99 allocs/op
+BenchmarkSubstituteRequest-10                            	  106581	     11353 ns/op	   11855 B/op	      99 allocs/op
+BenchmarkSubstituteRequest-10                            	  104832	     11316 ns/op	   11853 B/op	      99 allocs/op
+BenchmarkSubstituteRequest-10                            	  107472	     11278 ns/op	   11849 B/op	      99 allocs/op
+BenchmarkSubstituteRequest-10                            	  107558	     11316 ns/op	   11853 B/op	      99 allocs/op
+PASS
+ok  	github.com/nxdir-s/grl/internal/core/domain	82.081s
+?   	github.com/nxdir-s/grl/internal/core/entity	[no test files]
+?   	github.com/nxdir-s/grl/internal/core/service	[no test files]
+?   	github.com/nxdir-s/grl/internal/core/valobj	[no test files]
+?   	github.com/nxdir-s/grl/internal/logs	[no test files]
+?   	github.com/nxdir-s/grl/internal/ports	[no test files]
+goos: darwin
+goarch: arm64
+pkg: github.com/nxdir-s/grl/internal/tui
+cpu: Apple M2 Pro
+BenchmarkTUIView-10    	     682	   1650114 ns/op	  913284 B/op	   19311 allocs/op
+BenchmarkTUIView-10    	     753	   1592680 ns/op	  912314 B/op	   19311 allocs/op
+BenchmarkTUIView-10    	     762	   1595832 ns/op	  911729 B/op	   19311 allocs/op
+BenchmarkTUIView-10    	     751	   1591992 ns/op	  913440 B/op	   19311 allocs/op
+BenchmarkTUIView-10    	     756	   1597201 ns/op	  912804 B/op	   19311 allocs/op
+BenchmarkTUIView-10    	     729	   1602070 ns/op	  914324 B/op	   19311 allocs/op
+BenchmarkTUIView-10    	     750	   1601085 ns/op	  914238 B/op	   19311 allocs/op
+BenchmarkTUIView-10    	     753	   1598207 ns/op	  913256 B/op	   19311 allocs/op
+BenchmarkTUIView-10    	     750	   1602469 ns/op	  912894 B/op	   19311 allocs/op
+BenchmarkTUIView-10    	     748	   1607562 ns/op	  912397 B/op	   19311 allocs/op
+PASS
+ok  	github.com/nxdir-s/grl/internal/tui	12.358s
+goos: darwin
+goarch: arm64
+pkg: github.com/nxdir-s/grl/internal/tui/components
+cpu: Apple M2 Pro
+BenchmarkKVEditorView/rows_20-10         	    2934	    404901 ns/op	   66861 B/op	    2787 allocs/op
+BenchmarkKVEditorView/rows_20-10         	    2654	    454714 ns/op	   67083 B/op	    2787 allocs/op
+BenchmarkKVEditorView/rows_20-10         	    2670	    454789 ns/op	   67236 B/op	    2787 allocs/op
+BenchmarkKVEditorView/rows_20-10         	    2653	    456632 ns/op	   66976 B/op	    2787 allocs/op
+BenchmarkKVEditorView/rows_20-10         	    2617	    454743 ns/op	   66961 B/op	    2787 allocs/op
+BenchmarkKVEditorView/rows_20-10         	    2659	    454900 ns/op	   67190 B/op	    2787 allocs/op
+BenchmarkKVEditorView/rows_20-10         	    2664	    453797 ns/op	   67160 B/op	    2787 allocs/op
+BenchmarkKVEditorView/rows_20-10         	    2650	    455288 ns/op	   66978 B/op	    2787 allocs/op
+BenchmarkKVEditorView/rows_20-10         	    2655	    457848 ns/op	   67164 B/op	    2787 allocs/op
+BenchmarkKVEditorView/rows_20-10         	    2605	    456650 ns/op	   67158 B/op	    2787 allocs/op
+BenchmarkKVEditorView/rows_100-10        	     531	   2273165 ns/op	  329165 B/op	   13753 allocs/op
+BenchmarkKVEditorView/rows_100-10        	     531	   2269176 ns/op	  329156 B/op	   13753 allocs/op
+BenchmarkKVEditorView/rows_100-10        	     529	   2265126 ns/op	  329324 B/op	   13753 allocs/op
+BenchmarkKVEditorView/rows_100-10        	     522	   2273082 ns/op	  330111 B/op	   13754 allocs/op
+BenchmarkKVEditorView/rows_100-10        	     530	   2266292 ns/op	  328509 B/op	   13753 allocs/op
+BenchmarkKVEditorView/rows_100-10        	     531	   2262017 ns/op	  329561 B/op	   13754 allocs/op
+BenchmarkKVEditorView/rows_100-10        	     534	   2260563 ns/op	  329912 B/op	   13754 allocs/op
+BenchmarkKVEditorView/rows_100-10        	     609	   1973630 ns/op	  330350 B/op	   13754 allocs/op
+BenchmarkKVEditorView/rows_100-10        	     518	   2273274 ns/op	  329222 B/op	   13753 allocs/op
+BenchmarkKVEditorView/rows_100-10        	     529	   2274942 ns/op	  330139 B/op	   13754 allocs/op
+BenchmarkWrapForViewport/size_10KB-10    	    2122	    564687 ns/op	  34.97 MB/s	  404115 B/op	    7546 allocs/op
+BenchmarkWrapForViewport/size_10KB-10    	    2125	    564154 ns/op	  35.01 MB/s	  404117 B/op	    7546 allocs/op
+BenchmarkWrapForViewport/size_10KB-10    	    2146	    563887 ns/op	  35.02 MB/s	  404115 B/op	    7546 allocs/op
+BenchmarkWrapForViewport/size_10KB-10    	    2136	    568194 ns/op	  34.76 MB/s	  404114 B/op	    7546 allocs/op
+BenchmarkWrapForViewport/size_10KB-10    	    2118	    564511 ns/op	  34.98 MB/s	  404114 B/op	    7546 allocs/op
+BenchmarkWrapForViewport/size_10KB-10    	    2134	    564636 ns/op	  34.98 MB/s	  404115 B/op	    7546 allocs/op
+BenchmarkWrapForViewport/size_10KB-10    	    2145	    564005 ns/op	  35.02 MB/s	  404114 B/op	    7546 allocs/op
+BenchmarkWrapForViewport/size_10KB-10    	    2132	    563695 ns/op	  35.03 MB/s	  404115 B/op	    7546 allocs/op
+BenchmarkWrapForViewport/size_10KB-10    	    2145	    566228 ns/op	  34.88 MB/s	  404115 B/op	    7546 allocs/op
+BenchmarkWrapForViewport/size_10KB-10    	    2100	    564067 ns/op	  35.01 MB/s	  404115 B/op	    7546 allocs/op
+BenchmarkWrapForViewport/size_1MB-10     	      20	  56670817 ns/op	  34.84 MB/s	39593516 B/op	  736186 allocs/op
+BenchmarkWrapForViewport/size_1MB-10     	      20	  56592779 ns/op	  34.89 MB/s	39593493 B/op	  736186 allocs/op
+BenchmarkWrapForViewport/size_1MB-10     	      20	  56732267 ns/op	  34.80 MB/s	39593508 B/op	  736186 allocs/op
+BenchmarkWrapForViewport/size_1MB-10     	      20	  56374027 ns/op	  35.02 MB/s	39593531 B/op	  736186 allocs/op
+BenchmarkWrapForViewport/size_1MB-10     	      20	  56574602 ns/op	  34.90 MB/s	39593517 B/op	  736186 allocs/op
+BenchmarkWrapForViewport/size_1MB-10     	      19	  56964454 ns/op	  34.66 MB/s	39593486 B/op	  736186 allocs/op
+BenchmarkWrapForViewport/size_1MB-10     	      20	  56470700 ns/op	  34.96 MB/s	39593534 B/op	  736186 allocs/op
+BenchmarkWrapForViewport/size_1MB-10     	      20	  56459508 ns/op	  34.97 MB/s	39593526 B/op	  736186 allocs/op
+BenchmarkWrapForViewport/size_1MB-10     	      20	  56444240 ns/op	  34.98 MB/s	39593509 B/op	  736186 allocs/op
+BenchmarkWrapForViewport/size_1MB-10     	      20	  56589771 ns/op	  34.89 MB/s	39593540 B/op	  736186 allocs/op
+BenchmarkSearchKeystroke-10              	       6	 188359465 ns/op	36031912 B/op	  200841 allocs/op
+BenchmarkSearchKeystroke-10              	       6	 187797576 ns/op	36031986 B/op	  200841 allocs/op
+BenchmarkSearchKeystroke-10              	       6	 188071535 ns/op	36032873 B/op	  200842 allocs/op
+BenchmarkSearchKeystroke-10              	       6	 187957576 ns/op	36032010 B/op	  200841 allocs/op
+BenchmarkSearchKeystroke-10              	       6	 188573340 ns/op	36031906 B/op	  200841 allocs/op
+BenchmarkSearchKeystroke-10              	       6	 188165042 ns/op	36031917 B/op	  200841 allocs/op
+BenchmarkSearchKeystroke-10              	       6	 189264618 ns/op	36031925 B/op	  200841 allocs/op
+BenchmarkSearchKeystroke-10              	       6	 188377875 ns/op	36031925 B/op	  200841 allocs/op
+BenchmarkSearchKeystroke-10              	       6	 187984653 ns/op	36032002 B/op	  200841 allocs/op
+BenchmarkSearchKeystroke-10              	       6	 187983910 ns/op	36031986 B/op	  200841 allocs/op
+BenchmarkDragResize/size_10KB-10         	    1052	   1133355 ns/op	  732233 B/op	    9948 allocs/op
+BenchmarkDragResize/size_10KB-10         	    1034	   1136740 ns/op	  732234 B/op	    9948 allocs/op
+BenchmarkDragResize/size_10KB-10         	    1046	   1141352 ns/op	  732233 B/op	    9948 allocs/op
+BenchmarkDragResize/size_10KB-10         	    1066	   1135713 ns/op	  732234 B/op	    9948 allocs/op
+BenchmarkDragResize/size_10KB-10         	    1060	   1135108 ns/op	  732234 B/op	    9948 allocs/op
+BenchmarkDragResize/size_10KB-10         	    1058	   1134793 ns/op	  732233 B/op	    9948 allocs/op
+BenchmarkDragResize/size_10KB-10         	    1052	   1137461 ns/op	  732234 B/op	    9948 allocs/op
+BenchmarkDragResize/size_10KB-10         	    1048	   1132738 ns/op	  732234 B/op	    9948 allocs/op
+BenchmarkDragResize/size_10KB-10         	    1070	   1129598 ns/op	  732234 B/op	    9948 allocs/op
+BenchmarkDragResize/size_10KB-10         	    1068	   1132194 ns/op	  732233 B/op	    9948 allocs/op
+BenchmarkDragResize/size_1MB-10          	       9	 111933093 ns/op	76408392 B/op	  970429 allocs/op
+BenchmarkDragResize/size_1MB-10          	       9	 111521157 ns/op	76408404 B/op	  970429 allocs/op
+BenchmarkDragResize/size_1MB-10          	       9	 111582630 ns/op	76408416 B/op	  970429 allocs/op
+BenchmarkDragResize/size_1MB-10          	       9	 111653292 ns/op	76408393 B/op	  970429 allocs/op
+BenchmarkDragResize/size_1MB-10          	       9	 111737250 ns/op	76408392 B/op	  970429 allocs/op
+BenchmarkDragResize/size_1MB-10          	      10	 111552204 ns/op	76408392 B/op	  970429 allocs/op
+BenchmarkDragResize/size_1MB-10          	      10	 111254508 ns/op	76408392 B/op	  970429 allocs/op
+BenchmarkDragResize/size_1MB-10          	       9	 111688940 ns/op	76408392 B/op	  970429 allocs/op
+BenchmarkDragResize/size_1MB-10          	       9	 111619134 ns/op	76408416 B/op	  970429 allocs/op
+BenchmarkDragResize/size_1MB-10          	       9	 111761509 ns/op	76408392 B/op	  970429 allocs/op
+PASS
+ok  	github.com/nxdir-s/grl/internal/tui/components	84.292s

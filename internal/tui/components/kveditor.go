@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"strings"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -336,7 +337,8 @@ func (c KVEditor) View() string {
 	cursorStr := "▸ "
 	noCursor := "  "
 
-	var rows string
+	var rows strings.Builder
+
 	for i := range c.rows {
 		prefix := noCursor
 		if c.focused && i == c.cursor {
@@ -353,15 +355,13 @@ func (c KVEditor) View() string {
 			toggleMark = "○"
 		}
 
-		row := fmt.Sprintf("%s%s %s%s",
+		fmt.Fprintf(&rows, "%s%s %s%s\n",
 			prefix,
 			c.styles.toggle.Render(toggleMark),
 			style.Render(c.rows[i].key.View()),
 			style.Render(c.rows[i].value.View()),
 		)
-
-		rows += row + "\n"
 	}
 
-	return header + "\n" + rows
+	return header + "\n" + rows.String()
 }

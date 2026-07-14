@@ -23,10 +23,10 @@ jobs:
           go-version: stable
 
       - name: Go Test
-        run: go test -v ./...
+        run: go test -race -v ./...
 
       - name: Go Bench (smoke)
-        run: go test -run='^$' -bench=. -benchtime=1x ./internal/adapters/secondary/
+        run: go test -run='^$' -bench=. -benchtime=1x ./...
 
       - name: Update coverage report
         uses: ncruces/go-coverage-report@v0

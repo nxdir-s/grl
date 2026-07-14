@@ -105,9 +105,10 @@ func WithCredentials(ctx context.Context, id string, secret string, authUrl stri
 }
 
 type HttpConfig struct {
-	TlsConfig             *tls.Config
-	RetryEnabled          bool
-	FollowRedirects       bool
+	TlsConfig       *tls.Config
+	RetryEnabled    bool
+	FollowRedirects bool
+	// Timeout is in seconds
 	Timeout               int
 	RetryLimit            int
 	MaxIdleConnections    int
@@ -122,9 +123,9 @@ type HttpAdapter struct {
 }
 
 func NewHttpAdapter(cfg *HttpConfig, logger *slog.Logger, opts ...HttpOpt) *HttpAdapter {
-	var timeout int = DefaultTimeout * int(time.Second)
-	if cfg.Timeout != 0 {
-		timeout = cfg.Timeout
+	timeout := time.Duration(DefaultTimeout) * time.Second
+	if cfg.Timeout > 0 {
+		timeout = time.Duration(cfg.Timeout) * time.Second
 	}
 
 	var byteLimit int64 = DefaultReadByteLimit
@@ -144,14 +145,14 @@ func NewHttpAdapter(cfg *HttpConfig, logger *slog.Logger, opts ...HttpOpt) *Http
 
 	defaultTransport := &http.Transport{
 		Dial: (&net.Dialer{
-			Timeout: time.Duration(timeout),
+			Timeout: timeout,
 		}).Dial,
 		TLSClientConfig:     cfg.TlsConfig,
 		MaxIdleConns:        maxIdleConns,
 		MaxConnsPerHost:     maxConnsPerHost,
 		MaxIdleConnsPerHost: maxConnsPerHost,
-		IdleConnTimeout:     time.Duration(timeout),
-		TLSHandshakeTimeout: time.Duration(timeout),
+		IdleConnTimeout:     timeout,
+		TLSHandshakeTimeout: timeout,
 	}
 
 	var transport http.RoundTripper = defaultTransport
@@ -162,7 +163,7 @@ func NewHttpAdapter(cfg *HttpConfig, logger *slog.Logger, opts ...HttpOpt) *Http
 
 	adapter := &HttpAdapter{
 		http: &http.Client{
-			Timeout:   time.Duration(timeout),
+			Timeout:   timeout,
 			Transport: transport,
 		},
 		limit:  byteLimit,
@@ -376,26 +377,30 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	var err error
 
 	if req.Body != nil {
-		bodyBytes, err := io.ReadAll(req.Body)
+		bodyBytes, err = io.ReadAll(req.Body)
 		if err != nil {
 			return nil, &ErrHttpCopy{err}
 		}
 
-		req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 	}
 
 	resp, err := t.transport.RoundTrip(req)
 
 	retries := 0
 	for shouldRetry(resp, err) && retries < t.retryMax {
-		time.Sleep(backoff(retries))
-
-		if resp.Body != nil {
+		if resp != nil {
 			drainBody(resp.Body)
 		}
 
+		select {
+		case <-req.Context().Done():
+			return nil, req.Context().Err()
+		case <-time.After(backoff(retries)):
+		}
+
 		if req.Body != nil {
-			req.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+			req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 		}
 
 		resp, err = t.transport.RoundTrip(req)
@@ -422,7 +427,7 @@ func shouldRetry(resp *http.Response, err error) bool {
 		return true
 	}
 
-	if resp.StatusCode/10 != 20 {
+	if resp.StatusCode/100 != 2 {
 		return true
 	}
 

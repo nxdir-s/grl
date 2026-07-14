@@ -73,10 +73,21 @@ go run cmd/grl/main.go
 ./.github/unit_tests.sh
 
 # bench
-go test -run='^$' -bench=. -benchmem ./internal/adapters/secondary/
+go test -run='^$' -bench=. -benchmem ./...
 
 # vet
 go vet ./...
+```
+
+### Profiling
+
+```sh
+# write CPU and/or heap profiles for a session
+GRL_CPUPROFILE=cpu.out GRL_MEMPROFILE=mem.out grl
+go tool pprof cpu.out
+
+# verbose storage logging in ~/.config/grl/out.log
+GRL_LOG=debug grl
 ```
 
 ## Contributing

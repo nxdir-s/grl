@@ -62,12 +62,6 @@ func (e *ErrDeleteCollection) Error() string {
 	return "failed to delete collection: " + e.err.Error()
 }
 
-type ErrHistory struct{}
-
-func (e *ErrHistory) Error() string {
-	return "history is empty"
-}
-
 type ErrSaveHistory struct {
 	err error
 }
@@ -200,7 +194,7 @@ func (a *JSONAdapter) SaveCollection(ctx context.Context, collection *entity.Col
 		return &ErrSaveCollection{err}
 	}
 
-	a.logger.Info("saving collection",
+	a.logger.Debug("saving collection",
 		slog.String("id", collection.ID),
 		slog.String("name", collection.Name),
 		slog.Int("total_requests", len(collection.Requests)),
@@ -223,7 +217,7 @@ func (a *JSONAdapter) LoadCollection(ctx context.Context, id string) (*entity.Co
 		return nil, &ErrLoadCollection{err}
 	}
 
-	a.logger.Info("loading collection",
+	a.logger.Debug("loading collection",
 		slog.String("id", id),
 	)
 
@@ -236,7 +230,7 @@ func (a *JSONAdapter) LoadCollection(ctx context.Context, id string) (*entity.Co
 }
 
 func (a *JSONAdapter) ListCollections(ctx context.Context) ([]entity.Collection, error) {
-	a.logger.Info("loading collections")
+	a.logger.Debug("loading collections")
 
 	entries, err := os.ReadDir(a.collectionsDir)
 	if err != nil {
@@ -271,7 +265,7 @@ func (a *JSONAdapter) ListCollections(ctx context.Context) ([]entity.Collection,
 		return collections[i].Name < collections[j].Name
 	})
 
-	a.logger.Info("collections found", slog.Int("total", len(collections)))
+	a.logger.Debug("collections found", slog.Int("total", len(collections)))
 
 	return collections, nil
 }
@@ -281,7 +275,7 @@ func (a *JSONAdapter) DeleteCollection(ctx context.Context, id string) error {
 		return &ErrCollectionID{}
 	}
 
-	a.logger.Info("deleting collection", slog.String("id", id))
+	a.logger.Debug("deleting collection", slog.String("id", id))
 
 	if err := os.Remove(filepath.Join(a.collectionsDir, id+JSONFileExt)); err != nil {
 		return &ErrDeleteCollection{err}
@@ -291,16 +285,17 @@ func (a *JSONAdapter) DeleteCollection(ctx context.Context, id string) error {
 }
 
 func (a *JSONAdapter) SaveHistory(ctx context.Context, history []entity.HistoryEntry) error {
-	if len(history) == 0 {
-		return &ErrHistory{}
+	if history == nil {
+		history = make([]entity.HistoryEntry, 0)
 	}
 
-	data, err := json.MarshalIndent(history, "", "  ")
+	// history is machine-only, so skip pretty-printing on the hot path
+	data, err := json.Marshal(history)
 	if err != nil {
 		return &ErrSaveHistory{err}
 	}
 
-	a.logger.Info("saving history", slog.Int("total_entries", len(history)))
+	a.logger.Debug("saving history", slog.Int("total_entries", len(history)))
 
 	if err := os.WriteFile(a.historyFile, data, 0o644); err != nil {
 		return &ErrSaveHistory{err}
@@ -310,7 +305,7 @@ func (a *JSONAdapter) SaveHistory(ctx context.Context, history []entity.HistoryE
 }
 
 func (a *JSONAdapter) LoadHistory(ctx context.Context) ([]entity.HistoryEntry, error) {
-	a.logger.Info("loading history")
+	a.logger.Debug("loading history")
 
 	data, err := os.ReadFile(a.historyFile)
 	if err != nil {
@@ -330,7 +325,7 @@ func (a *JSONAdapter) LoadHistory(ctx context.Context) ([]entity.HistoryEntry, e
 		history = make([]entity.HistoryEntry, 0)
 	}
 
-	a.logger.Info("history found", slog.Int("total_entries", len(history)))
+	a.logger.Debug("history found", slog.Int("total_entries", len(history)))
 
 	return history, nil
 }
@@ -347,7 +342,7 @@ func (s *JSONAdapter) SaveEnvironment(ctx context.Context, env *entity.Environme
 
 	path := filepath.Join(s.environmentsDir, env.ID+".json")
 
-	s.logger.Info("saving environment",
+	s.logger.Debug("saving environment",
 		slog.String("id", env.ID),
 		slog.String("name", env.Name),
 		slog.String("filePath", path),
@@ -365,7 +360,7 @@ func (a *JSONAdapter) LoadEnvironment(ctx context.Context, id string) (*entity.E
 		return nil, &ErrEnvironmentID{}
 	}
 
-	a.logger.Info("loading environment")
+	a.logger.Debug("loading environment")
 
 	path := filepath.Join(a.environmentsDir, id+".json")
 
@@ -379,7 +374,7 @@ func (a *JSONAdapter) LoadEnvironment(ctx context.Context, id string) (*entity.E
 		return nil, &ErrLoadEnvironment{err}
 	}
 
-	a.logger.Info("environment found",
+	a.logger.Debug("environment found",
 		slog.String("id", env.ID),
 		slog.String("name", env.ID),
 	)
@@ -388,7 +383,7 @@ func (a *JSONAdapter) LoadEnvironment(ctx context.Context, id string) (*entity.E
 }
 
 func (a *JSONAdapter) ListEnvironments(ctx context.Context) ([]entity.Environment, error) {
-	a.logger.Info("listing environments")
+	a.logger.Debug("listing environments")
 
 	entries, err := os.ReadDir(a.environmentsDir)
 	if err != nil {
@@ -426,7 +421,7 @@ func (a *JSONAdapter) ListEnvironments(ctx context.Context) ([]entity.Environmen
 		return envs[i].Name < envs[j].Name
 	})
 
-	a.logger.Info("environments found", slog.Int("total", len(envs)))
+	a.logger.Debug("environments found", slog.Int("total", len(envs)))
 
 	return envs, nil
 }
@@ -436,7 +431,7 @@ func (a *JSONAdapter) DeleteEnvironment(ctx context.Context, id string) error {
 		return &ErrEnvironmentID{}
 	}
 
-	a.logger.Info("deleting environment", slog.String("id", id))
+	a.logger.Debug("deleting environment", slog.String("id", id))
 
 	path := filepath.Join(a.environmentsDir, id+".json")
 
@@ -457,7 +452,7 @@ func (a *JSONAdapter) SaveConfig(ctx context.Context, cfg *valobj.Config) error 
 		return &ErrSaveConfig{err}
 	}
 
-	a.logger.Info("saving config",
+	a.logger.Debug("saving config",
 		slog.String("active_env", cfg.ActiveEnvID),
 		slog.String("default_method", cfg.DefaultMethod),
 		slog.Int("timeout", cfg.TimeoutSeconds),
@@ -473,7 +468,7 @@ func (a *JSONAdapter) SaveConfig(ctx context.Context, cfg *valobj.Config) error 
 }
 
 func (a *JSONAdapter) LoadConfig(ctx context.Context) (*valobj.Config, error) {
-	a.logger.Info("loading config")
+	a.logger.Debug("loading config")
 
 	data, err := os.ReadFile(a.configFile)
 	if err != nil {
@@ -489,7 +484,7 @@ func (a *JSONAdapter) LoadConfig(ctx context.Context) (*valobj.Config, error) {
 		return nil, &ErrLoadConfig{err}
 	}
 
-	a.logger.Info("found config",
+	a.logger.Debug("found config",
 		slog.String("active_env", cfg.ActiveEnvID),
 		slog.String("default_method", cfg.DefaultMethod),
 		slog.Int("timeout", cfg.TimeoutSeconds),

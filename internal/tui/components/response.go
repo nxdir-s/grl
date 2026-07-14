@@ -48,6 +48,7 @@ type ResponseHeaderPane struct {
 	styles   *ResponseHeaderPaneStyles
 	ready    bool
 	raw      string
+	rawLower string
 	styled   string
 }
 
@@ -82,6 +83,7 @@ func (c *ResponseHeaderPane) SetHeaders(headers []valobj.Header) {
 
 	if len(headers) == 0 {
 		c.raw = ""
+		c.rawLower = ""
 		c.styled = ResponseHeaderPlaceholder
 		c.viewport.SetContent(c.styled)
 		return
@@ -107,6 +109,7 @@ func (c *ResponseHeaderPane) SetHeaders(headers []valobj.Header) {
 	}
 
 	c.raw = rawSb.String()
+	c.rawLower = strings.ToLower(c.raw)
 	c.styled = sb.String()
 
 	c.viewport.SetContent(c.styled)
@@ -114,6 +117,10 @@ func (c *ResponseHeaderPane) SetHeaders(headers []valobj.Header) {
 
 func (c ResponseHeaderPane) Raw() string {
 	return c.raw
+}
+
+func (c ResponseHeaderPane) RawLower() string {
+	return c.rawLower
 }
 
 func (c *ResponseHeaderPane) ShowPlain() {
@@ -134,6 +141,7 @@ func (c *ResponseHeaderPane) Viewport() *viewport.Model {
 
 func (c *ResponseHeaderPane) Clear() {
 	c.raw = ""
+	c.rawLower = ""
 	c.styled = ""
 
 	if c.ready {
@@ -178,13 +186,15 @@ func NewResponseBodyPaneStyles() *ResponseBodyPaneStyles {
 }
 
 type ResponseBodyPane struct {
-	adapter  ports.TUI
-	styles   *ResponseBodyPaneStyles
-	viewport viewport.Model
-	ready    bool
-	styled   bool
-	width    int
-	raw      string
+	adapter        ports.TUI
+	styles         *ResponseBodyPaneStyles
+	viewport       viewport.Model
+	ready          bool
+	styled         bool
+	refreshPending bool
+	width          int
+	raw            string
+	rawLower       string
 }
 
 func NewResponseBodyPane(adapter ports.TUI) ResponseBodyPane {
@@ -215,12 +225,24 @@ func (c *ResponseBodyPane) SetSize(width, height int) {
 		c.ready = true
 	}
 
+	// defer the expensive re-colorize/re-wrap during resize streams; the
+	// root model flushes once the resize settles
 	if widthChanged && len(c.raw) != 0 {
+		c.refreshPending = true
+	}
+}
+
+// FlushResize applies a deferred resize refresh, re-colorizing and
+// re-wrapping the body once instead of per intermediate width
+func (c *ResponseBodyPane) FlushResize() {
+	if c.refreshPending {
 		c.refresh()
 	}
 }
 
 func (c *ResponseBodyPane) refresh() {
+	c.refreshPending = false
+
 	content := c.raw
 	if c.styled {
 		content = c.adapter.ColorizeJSON(c.raw)
@@ -235,11 +257,16 @@ func (c *ResponseBodyPane) SetContent(resp *entity.Response) {
 	}
 
 	c.raw = resp.FormatBody()
+	c.rawLower = strings.ToLower(c.raw)
 	c.refresh()
 }
 
 func (c ResponseBodyPane) Raw() string {
 	return c.raw
+}
+
+func (c ResponseBodyPane) RawLower() string {
+	return c.rawLower
 }
 
 func (c *ResponseBodyPane) ShowPlain() {
@@ -262,6 +289,9 @@ func (c *ResponseBodyPane) Viewport() *viewport.Model {
 
 func (c *ResponseBodyPane) Clear() {
 	c.raw = ""
+	c.rawLower = ""
+	c.refreshPending = false
+
 	if c.ready {
 		c.viewport.SetContent("")
 	}
@@ -365,7 +395,13 @@ func (c ResponseStatusLine) View() string {
 
 	status := c.renderStatus()
 	totalTiming := c.styles.muted.Render(fmt.Sprintf("%dms", c.response.Timing.Total.Milliseconds()))
-	size := c.styles.muted.Render(formatSize(len(c.response.Body.Bytes())))
+
+	var bodySize int
+	if c.response.Body != nil {
+		bodySize = c.response.Body.Len()
+	}
+
+	size := c.styles.muted.Render(formatSize(bodySize))
 
 	summary := fmt.Sprintf("%s  ·  %s  ·  %s", status, totalTiming, size)
 	breakdown := c.formatTimingBreakdown(c.response.Timing)
@@ -646,6 +682,23 @@ func (c *ResponseViewer) activePaneRaw() string {
 	}
 }
 
+func (c *ResponseViewer) activePaneRawLower() string {
+	switch c.tabs.Active() {
+	case ResponseTabBody:
+		return c.bodyPane.RawLower()
+	case ResponseTabHeaders:
+		return c.headerPane.RawLower()
+	default:
+		return ""
+	}
+}
+
+// FlushResize applies any deferred resize refresh once a resize stream has
+// settled
+func (c *ResponseViewer) FlushResize() {
+	c.bodyPane.FlushResize()
+}
+
 func (c *ResponseViewer) showActivePlain() {
 	switch c.tabs.Active() {
 	case ResponseTabBody:
@@ -682,7 +735,7 @@ func (c *ResponseViewer) recomputeMatches() {
 		return
 	}
 
-	haystack := strings.ToLower(c.activePaneRaw())
+	haystack := c.activePaneRawLower()
 	matches := [][]int{}
 
 	for off := 0; off <= len(haystack); {

@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
+	"runtime/pprof"
 
 	"github.com/nxdir-s/grl/internal/adapters/primary"
 	"github.com/nxdir-s/grl/internal/adapters/secondary"
@@ -22,6 +24,45 @@ import (
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+
+	if path := os.Getenv("GRL_CPUPROFILE"); len(path) != 0 {
+		cpuFile, err := os.Create(path)
+		if err != nil {
+			fmt.Fprintf(os.Stdout, "failed to create cpu profile: %s\n", err.Error())
+			os.Exit(1)
+		}
+
+		if err := pprof.StartCPUProfile(cpuFile); err != nil {
+			fmt.Fprintf(os.Stdout, "failed to start cpu profile: %s\n", err.Error())
+			os.Exit(1)
+		}
+
+		defer func() {
+			pprof.StopCPUProfile()
+
+			if err := cpuFile.Close(); err != nil {
+				fmt.Fprintf(os.Stdout, "failed to close cpu profile: %s\n", err.Error())
+			}
+		}()
+	}
+
+	if path := os.Getenv("GRL_MEMPROFILE"); len(path) != 0 {
+		defer func() {
+			memFile, err := os.Create(path)
+			if err != nil {
+				fmt.Fprintf(os.Stdout, "failed to create mem profile: %s\n", err.Error())
+				return
+			}
+
+			defer memFile.Close()
+
+			runtime.GC()
+
+			if err := pprof.WriteHeapProfile(memFile); err != nil {
+				fmt.Fprintf(os.Stdout, "failed to write mem profile: %s\n", err.Error())
+			}
+		}()
+	}
 
 	cfg, err := config.New(ctx, config.WithCredentials())
 	if err != nil {
@@ -61,7 +102,14 @@ func main() {
 		}
 	}()
 
-	logger := slog.New(logs.NewHandler(slog.NewTextHandler(logFile, nil)))
+	logLevel := slog.LevelInfo
+	if os.Getenv("GRL_LOG") == "debug" {
+		logLevel = slog.LevelDebug
+	}
+
+	logger := slog.New(logs.NewHandler(slog.NewTextHandler(logFile, &slog.HandlerOptions{
+		Level: logLevel,
+	})))
 	slog.SetDefault(logger)
 
 	var http ports.Http
@@ -85,10 +133,28 @@ func main() {
 
 	var adapter ports.TUI
 
+	storage = secondary.NewCachedStorage(secondary.NewJSONAdapter(logger, dataDir, collectionsDir, environmentsDir))
+
+	collectionService = service.NewCollectionService(storage)
+	historyService = service.NewHistoryService(storage)
+	environmentService = service.NewEnvironmentService(storage)
+	configService = service.NewConfigService(storage)
+
+	configs = domain.NewConfigs(configService)
+
+	// loading once here also warms the storage cache for the send path
+	userCfg, err := configs.Get(ctx)
+	if err != nil {
+		logger.Error("failed to load config, using defaults", slog.String("err", err.Error()))
+		userCfg = configs.Defaults()
+	}
+
 	httpCfg := &secondary.HttpConfig{
 		TlsConfig: &tls.Config{
 			MinVersion: tls.VersionTLS12,
 		},
+		Timeout:         userCfg.TimeoutSeconds,
+		FollowRedirects: userCfg.FollowRedirects,
 	}
 
 	httpOpts := make([]secondary.HttpOpt, 0)
@@ -99,18 +165,12 @@ func main() {
 	}
 
 	http = secondary.NewHttpAdapter(httpCfg, logger, httpOpts...)
-	storage = secondary.NewJSONAdapter(logger, dataDir, collectionsDir, environmentsDir)
 
 	requestService = service.NewRequestService(http)
-	collectionService = service.NewCollectionService(storage)
-	historyService = service.NewHistoryService(storage)
-	environmentService = service.NewEnvironmentService(storage)
-	configService = service.NewConfigService(storage)
 
 	auth = domain.NewAuth()
 	formatter = domain.NewFormatter()
 	clipboard = domain.NewClipboard()
-	configs = domain.NewConfigs(configService)
 	environments = domain.NewEnvironments(environmentService, configs)
 	substitutions = domain.NewSubstitutions()
 	collections = domain.NewCollections(collectionService)

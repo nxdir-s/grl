@@ -2,6 +2,7 @@ package domain
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/nxdir-s/grl/internal/core/entity"
 	"github.com/nxdir-s/grl/internal/core/valobj"
@@ -18,22 +19,34 @@ func NewSubstitutions() *Substitutions {
 }
 
 func (d *Substitutions) Substitute(str string, vars map[string]string) string {
-	if len(vars) == 0 {
+	if len(vars) == 0 || !strings.Contains(str, "{{") {
 		return str
 	}
 
-	return d.varPattern.ReplaceAllStringFunc(str, func(match string) string {
-		m := d.varPattern.FindStringSubmatch(match)
-		if len(m) < 2 {
-			return match
+	matches := d.varPattern.FindAllStringSubmatchIndex(str, -1)
+	if len(matches) == 0 {
+		return str
+	}
+
+	var sb strings.Builder
+	sb.Grow(len(str))
+
+	last := 0
+	for _, m := range matches {
+		v, ok := vars[str[m[2]:m[3]]]
+		if !ok {
+			// leave unknown placeholders untouched
+			continue
 		}
 
-		if v, ok := vars[m[1]]; ok {
-			return v
-		}
+		sb.WriteString(str[last:m[0]])
+		sb.WriteString(v)
+		last = m[1]
+	}
 
-		return match
-	})
+	sb.WriteString(str[last:])
+
+	return sb.String()
 }
 
 func (d *Substitutions) SubstituteRequest(req *entity.Request, vars map[string]string) *entity.Request {

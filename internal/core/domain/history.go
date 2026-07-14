@@ -2,13 +2,19 @@ package domain
 
 import (
 	"context"
+	"slices"
+	"sync"
 
 	"github.com/nxdir-s/grl/internal/core/entity"
 	"github.com/nxdir-s/grl/internal/ports"
 )
 
+const HistoryCap int = 100
+
 type History struct {
 	service ports.HistoryService
+
+	mu sync.Mutex
 }
 
 func NewHistory(service ports.HistoryService) *History {
@@ -17,33 +23,56 @@ func NewHistory(service ports.HistoryService) *History {
 	}
 }
 
+// canonicalize sorts entries into the canonical on-disk order, ascending by
+// timestamp, healing files persisted in display order by older versions
+func canonicalize(history []entity.HistoryEntry) {
+	sorted := slices.IsSortedFunc(history, func(a, b entity.HistoryEntry) int {
+		return a.Timestamp.Compare(b.Timestamp)
+	})
+
+	if !sorted {
+		slices.SortStableFunc(history, func(a, b entity.HistoryEntry) int {
+			return a.Timestamp.Compare(b.Timestamp)
+		})
+	}
+}
+
+// Load returns entries newest-first without mutating the stored order
 func (d *History) Load(ctx context.Context, limit int) ([]entity.HistoryEntry, error) {
 	history, err := d.service.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	for i, j := 0, len(history)-1; i < j; i, j = i+1, j-1 {
-		history[i], history[j] = history[j], history[i]
+	canonicalize(history)
+
+	out := make([]entity.HistoryEntry, 0, len(history))
+	for i := len(history) - 1; i >= 0; i-- {
+		out = append(out, history[i])
 	}
 
-	if limit > 0 && len(history) > limit {
-		history = history[:limit]
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
 	}
 
-	return history, nil
+	return out, nil
 }
 
 func (d *History) Append(ctx context.Context, req *entity.Request, resp *entity.Response) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	history, err := d.service.Get(ctx)
 	if err != nil {
 		return err
 	}
 
+	canonicalize(history)
+
 	history = append(history, entity.NewHistoryEntry(req, resp))
 
-	if len(history) > 100 {
-		history = history[len(history)-100:]
+	if len(history) > HistoryCap {
+		history = history[len(history)-HistoryCap:]
 	}
 
 	if err := d.service.Save(ctx, history); err != nil {
@@ -54,12 +83,17 @@ func (d *History) Append(ctx context.Context, req *entity.Request, resp *entity.
 }
 
 func (d *History) DeleteEntry(ctx context.Context, id string) error {
-	history, err := d.Load(ctx, 0)
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	history, err := d.service.Get(ctx)
 	if err != nil {
 		return err
 	}
 
-	out := history[:0]
+	canonicalize(history)
+
+	out := make([]entity.HistoryEntry, 0, len(history))
 
 	for i := range history {
 		if history[i].ID != id {

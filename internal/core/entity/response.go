@@ -13,13 +13,15 @@ const (
 )
 
 type Response struct {
-	StatusCode    int             `json:"status_code"`
-	Status        string          `json:"status"`
-	Headers       []valobj.Header `json:"headers,omitempty"`
-	Body          *bytes.Buffer   `json:"body,omitempty"`
-	ContentType   string          `json:"content_type"`
-	ContentLength int64           `json:"content_length"`
-	Timing        valobj.Timing   `json:"timing"`
+	StatusCode int             `json:"status_code"`
+	Status     string          `json:"status"`
+	Headers    []valobj.Header `json:"headers,omitempty"`
+	// Body is not persisted: it always marshaled as an empty object, and
+	// storing full bodies would bloat the history file
+	Body          *bytes.Buffer `json:"-"`
+	ContentType   string        `json:"content_type"`
+	ContentLength int64         `json:"content_length"`
+	Timing        valobj.Timing `json:"timing"`
 }
 
 func NewResponse() *Response {
@@ -27,7 +29,7 @@ func NewResponse() *Response {
 }
 
 func (e *Response) FormatBody() string {
-	if len(e.Body.Bytes()) == 0 {
+	if e.Body == nil || len(e.Body.Bytes()) == 0 {
 		return ""
 	}
 

@@ -621,6 +621,23 @@ func TestSaveHistory(t *testing.T) {
 	}
 }
 
+func TestSaveHistoryEmpty(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	dataDir := t.TempDir()
+	adapter := NewJSONAdapter(logger, dataDir, dataDir, dataDir)
+
+	err := adapter.SaveHistory(ctx, []entity.HistoryEntry{})
+	assert.NoError(t, err, "deleting the last history entry must be able to persist an empty file")
+
+	out, err := adapter.LoadHistory(ctx)
+	assert.NoError(t, err)
+	assert.Empty(t, out)
+}
+
 func TestLoadHistory(t *testing.T) {
 	cases := []struct {
 		opts        []JSONOpt
@@ -1116,11 +1133,6 @@ func TestJSONErrors(t *testing.T) {
 	err = &ErrDeleteCollection{&ErrTest{}}
 	if len(err.Error()) == 0 {
 		t.Error("missing error message for ErrDeleteCollection")
-	}
-
-	err = &ErrHistory{}
-	if len(err.Error()) == 0 {
-		t.Error("missing error message for ErrHistory")
 	}
 
 	err = &ErrSaveHistory{&ErrTest{}}

@@ -116,6 +116,8 @@ const (
 const (
 	PanelCount   int = 4
 	SidebarWidth int = 28
+
+	ResizeDebounce time.Duration = 100 * time.Millisecond
 )
 
 type Rect struct {
@@ -163,6 +165,7 @@ type TUI struct {
 
 	panelCount   int
 	sidebarWidth int
+	resizeSeq    int
 
 	styles *Styles
 	themes *Themes
@@ -234,6 +237,19 @@ func (t *TUI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		t.envModal.SetSize(t.width, t.height)
 		t.helpModal.SetSize(t.width, t.height)
 		t.recalcLayout()
+
+		// debounce the expensive response re-render: only the tick from the
+		// final resize in a stream matches resizeSeq and flushes
+		t.resizeSeq++
+		seq := t.resizeSeq
+
+		return t, tea.Tick(ResizeDebounce, func(time.Time) tea.Msg {
+			return components.ResizeSettledMsg{Seq: seq}
+		})
+	case components.ResizeSettledMsg:
+		if msg.Seq == t.resizeSeq {
+			t.response.FlushResize()
+		}
 
 		return t, nil
 	case tea.MouseClickMsg:

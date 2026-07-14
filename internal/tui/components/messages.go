@@ -81,3 +81,9 @@ type RemoveRequestMsg struct {
 type DeleteHistoryEntryMsg struct {
 	EntryID string
 }
+
+// ResizeSettledMsg fires after a resize stream has been quiet long enough to
+// apply deferred refreshes; Seq identifies the resize event that scheduled it
+type ResizeSettledMsg struct {
+	Seq int
+}
